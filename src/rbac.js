@@ -375,6 +375,11 @@ export function unmarkDeletedUsername(username) {
   } catch {}
 }
 
+export function sanitizeBranchString(str) {
+  if (typeof str !== 'string') return str
+  return str.replace(/Mandaue/gi, 'LDN')
+}
+
 export function getRbacUsers() {
   if (!isBrowser) return DEFAULT_USERS
   const deleted = getDeletedUsernames()
@@ -384,7 +389,26 @@ export function getRbacUsers() {
     if (raw) {
       const parsed = JSON.parse(raw)
       if (Array.isArray(parsed)) {
-        return parsed.filter((u) => !deleted.includes(u.username.toLowerCase()))
+        let changed = false
+        const sanitized = parsed.map((u) => {
+          const newBranch = sanitizeBranchString(u.branch)
+          const newEmail = u.email ? u.email.replace(/luckybetplay\.ph/gi, 'glowingfortune.ph') : u.email
+          const newUsername = u.username ? u.username.replace(/^mandaue\.staff$/i, 'ldn.staff').replace(/^teller\.mandaue$/i, 'teller.ldn') : u.username
+          if (newBranch !== u.branch || newEmail !== u.email || newUsername !== u.username) {
+            changed = true
+          }
+          return {
+            ...u,
+            username: newUsername,
+            branch: newBranch,
+            email: newEmail,
+          }
+        }).filter((u) => !deleted.includes(u.username.toLowerCase()))
+
+        if (changed) {
+          localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(sanitized))
+        }
+        return sanitized
       }
     }
   } catch (err) {

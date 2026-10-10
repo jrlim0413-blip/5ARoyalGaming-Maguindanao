@@ -186,7 +186,7 @@ export default function FacebookProfileDropdown({
                   @{currentUser?.username || 'user'} &bull; {userRoleText}
                 </span>
                 <span className="fb-profile-branch">
-                  {currentUser?.branch || 'LDN Branch'}
+                  {(currentUser?.branch ? currentUser.branch.replace(/Mandaue/gi, 'LDN') : 'LDN Branch')}
                 </span>
               </div>
             </div>

@@ -1872,7 +1872,14 @@ function App() {
   const [currentUser, setCurrentUser] = useState(() => {
     try {
       const saved = localStorage.getItem('luckybet_user') || sessionStorage.getItem('luckybet_user')
-      return saved ? JSON.parse(saved) : null
+      if (!saved) return null
+      const parsed = JSON.parse(saved)
+      if (parsed) {
+        if (parsed.branch) parsed.branch = parsed.branch.replace(/Mandaue/gi, 'LDN')
+        if (parsed.username) parsed.username = parsed.username.replace(/^mandaue\.staff$/i, 'ldn.staff').replace(/^teller\.mandaue$/i, 'teller.ldn')
+        localStorage.setItem('luckybet_user', JSON.stringify(parsed))
+      }
+      return parsed
     } catch {
       return null
     }
@@ -1882,6 +1889,21 @@ function App() {
   const [commissionSettings, setCommissionSettings] = useState(() => loadCommissionSettings())
 
   useEffect(() => {
+    try {
+      ['luckybet_user', 'luckybet_rbac_users'].forEach((key) => {
+        const val = localStorage.getItem(key)
+        if (val && /Mandaue/i.test(val)) {
+          const cleaned = val.replace(/Mandaue/gi, 'LDN')
+            .replace(/mandaue\.staff/gi, 'ldn.staff')
+            .replace(/teller\.mandaue/gi, 'teller.ldn')
+            .replace(/luckybetplay\.ph/gi, 'glowingfortune.ph')
+          localStorage.setItem(key, cleaned)
+        }
+      })
+    } catch (e) {
+      console.warn('Legacy localStorage migration notice:', e)
+    }
+
     const handleCommissionChange = (e) => {
       if (e?.detail) setCommissionSettings(e.detail)
       else setCommissionSettings(loadCommissionSettings())
@@ -2144,7 +2166,8 @@ function App() {
     return () => window.clearTimeout(timeoutId)
   }, [activeView, currentUser, loadReport, selectedDate])
 
-  const branchName = (!import.meta.env.VITE_BRANCH_NAME && rows.find((r) => r?.location || r?.branch || r?.branchName)?.location) || configuredBranch
+  const rawBranchName = (!import.meta.env.VITE_BRANCH_NAME && rows.find((r) => r?.location || r?.branch || r?.branchName)?.location) || configuredBranch
+  const branchName = (rawBranchName || 'LDN').replace(/Mandaue/gi, 'LDN')
 
   const columns = getColumns(rows)
   const drawRows = rows.filter((row) => row && row.drawTime !== undefined)
