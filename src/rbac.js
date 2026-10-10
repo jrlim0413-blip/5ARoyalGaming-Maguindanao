@@ -1,4 +1,4 @@
-// src/rbac.js - Role-Based Access Control (RBAC) & Credential Store for Lucky Betplay Corporation
+// src/rbac.js - Role-Based Access Control (RBAC) & Credential Store for Glowing Fortune Corporation
 import { saveSupabaseMatrixConfig } from './supabase.js'
 
 const USERS_STORAGE_KEY = 'luckybet_rbac_users'

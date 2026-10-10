@@ -4,21 +4,21 @@ import { createClient } from '@supabase/supabase-js'
 const env = typeof import.meta !== 'undefined' && import.meta.env ? import.meta.env : {}
 
 const supabaseUrl =
-  env.VITE_SUPABASE_URL || 'https://zebtqevwnockipsqifyf.supabase.co'
+  env.VITE_SUPABASE_URL || 'https://ejtsskrbkaqfdcouwvzh.supabase.co'
 const supabaseAnonKey =
   env.VITE_SUPABASE_ANON_KEY ||
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InplYnRxZXZ3bm9ja2lwc3FpZnlmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAzODQ1MjcsImV4cCI6MjEwNTk2MDUyN30.RtcBRjoaq4r1hVb6UD7OGKYblASi_-DmQa6DDTs7lDU'
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVqdHNza3Jia2FxZmRjb3V3dnpoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE2MTI3MDAsImV4cCI6MjEwNzE4ODcwMH0.whKp_OjW-AU-OhxbnTHxtpG7-hsy23cUsgl11M8gtT0'
 
 export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey)
 
 export const supabase = isSupabaseConfigured
   ? createClient(supabaseUrl, supabaseAnonKey, {
-      auth: {
-        persistSession: true,
-        autoRefreshToken: true,
-        detectSessionInUrl: true,
-      },
-    })
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true,
+    },
+  })
   : null
 
 export const RBAC_TABLE_NAME = 'rbac_users'
@@ -111,8 +111,8 @@ export async function verifyCredentialsInSupabaseTable(username, password) {
       .from(RBAC_TABLE_NAME)
       .update({ last_login: new Date().toISOString() })
       .eq('id', account.id)
-      .then(() => {})
-      .catch(() => {})
+      .then(() => { })
+      .catch(() => { })
 
     return {
       success: true,
@@ -209,7 +209,7 @@ export async function saveSupabaseMatrixConfig(config) {
       if (!tableErr) {
         savedToTable = true
       }
-    } catch {}
+    } catch { }
 
     // 2. Only fallback to system row in rbac_users if dedicated table is not present
     let userErr = null
@@ -242,7 +242,7 @@ export async function saveSupabaseMatrixConfig(config) {
           payload: { timestamp: Date.now() },
         })
       }
-    } catch {}
+    } catch { }
 
     if (savedToTable || !userErr) {
       return { success: true, source: savedToTable ? 'rbac_matrix_config' : 'rbac_users_fallback' }
@@ -366,7 +366,7 @@ export async function saveSupabaseCommissionSettings(settings) {
           updated_at: new Date().toISOString(),
         })
       if (!tableErr) savedToTable = true
-    } catch {}
+    } catch { }
 
     // 2. Only fallback to system row in rbac_users if dedicated table is not present
     let userErr = null
@@ -399,7 +399,7 @@ export async function saveSupabaseCommissionSettings(settings) {
           payload: { timestamp: Date.now() },
         })
       }
-    } catch {}
+    } catch { }
 
     if (savedToTable || !userErr) {
       return { success: true, source: savedToTable ? 'rbac_matrix_config' : 'rbac_users_fallback' }
@@ -451,7 +451,7 @@ export async function syncCommissionSettingsFromSupabase() {
  * Subscribe to real-time matrix & commission changes across all browsers and devices.
  */
 export function subscribeToMatrixRealtime(onUpdate) {
-  if (!supabase) return () => {}
+  if (!supabase) return () => { }
 
   try {
     const channel = supabase.channel(MATRIX_REALTIME_CHANNEL)
@@ -462,7 +462,7 @@ export function subscribeToMatrixRealtime(onUpdate) {
         if (typeof onUpdate === 'function') onUpdate()
       })
       .on('broadcast', { event: 'commissions_updated' }, () => {
-        syncCommissionSettingsFromSupabase().catch(() => {})
+        syncCommissionSettingsFromSupabase().catch(() => { })
       })
       .on(
         'postgres_changes',
@@ -480,7 +480,7 @@ export function subscribeToMatrixRealtime(onUpdate) {
             payload?.old?.id === COMMISSIONS_CONFIG_SYS_ID ||
             payload?.new?.username === COMMISSIONS_CONFIG_SYS_ID
           ) {
-            syncCommissionSettingsFromSupabase().catch(() => {})
+            syncCommissionSettingsFromSupabase().catch(() => { })
           }
         }
       )
@@ -489,7 +489,7 @@ export function subscribeToMatrixRealtime(onUpdate) {
         { event: '*', schema: 'public', table: 'rbac_matrix_config' },
         (payload) => {
           if (payload?.new?.id === COMMISSIONS_CONFIG_ID || payload?.old?.id === COMMISSIONS_CONFIG_ID) {
-            syncCommissionSettingsFromSupabase().catch(() => {})
+            syncCommissionSettingsFromSupabase().catch(() => { })
           } else {
             if (typeof onUpdate === 'function') onUpdate()
           }
@@ -503,11 +503,11 @@ export function subscribeToMatrixRealtime(onUpdate) {
         if (realtimeChannelInstance === channel) {
           realtimeChannelInstance = null
         }
-      } catch {}
+      } catch { }
     }
   } catch (err) {
     console.warn('Realtime subscription setup error:', err)
-    return () => {}
+    return () => { }
   }
 }
 
@@ -650,7 +650,7 @@ export async function seedDefaultUsersToSupabase(defaultUsers) {
     }))
 
     await supabase.from(RBAC_TABLE_NAME).upsert(rows, { onConflict: 'username' })
-  } catch {}
+  } catch { }
 }
 
 // =============================================================================

@@ -156,7 +156,7 @@ export default function LoginPage({ onLoginSuccess, branchName = 'Mandaue' }) {
       id: 'brand',
       eyebrow: 'AUTHORIZED GAMING OPERATOR',
       tag: 'PCSO COMPLIANT',
-      title: 'Lucky Betplay Corporation',
+      title: 'Glowing Fortune Corporation',
       subtitle:
         'Official accounting workstation and certified draw sales auditing engine for authorized STL staff.',
       type: 'brand',
@@ -468,8 +468,8 @@ export default function LoginPage({ onLoginSuccess, branchName = 'Mandaue' }) {
                       <h1 className="stl-hero-title">
                         {slide.id === 'brand' ? (
                           <>
-                            <span className="hero-title-main">Lucky Betplay</span>{' '}
-                            <span className="hero-title-accent">Corporation</span>
+                            <span className="hero-title-main">Glowing</span>{' '}
+                            <span className="hero-title-accent">Fortune</span>
                           </>
                         ) : slide.id === 'matrix' ? (
                           <>
@@ -500,8 +500,8 @@ export default function LoginPage({ onLoginSuccess, branchName = 'Mandaue' }) {
                           <div className="stl-emblem-solar-ring" aria-hidden="true" />
                           <div className="stl-solar-corona-glow" aria-hidden="true" />
                           <img
-                            src="/LB.png"
-                            alt="Lucky Betplay Corporation"
+                            src="/glowing-fortune-logo.png"
+                            alt="Glowing Fortune Corporation"
                             className="lb-hero-emblem-img"
                           />
                           <div className="stl-emblem-floating-chip chip-left">

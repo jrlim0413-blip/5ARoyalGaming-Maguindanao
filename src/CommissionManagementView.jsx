@@ -1,4 +1,4 @@
-// src/CommissionManagementView.jsx - Hierarchical Agent Commission Management View for Lucky Betplay Corporation
+// src/CommissionManagementView.jsx - Hierarchical Agent Commission Management View for Glowing Fortune Corporation
 import React, { useState, useEffect, useMemo } from 'react'
 import {
   loadCommissionSettings,

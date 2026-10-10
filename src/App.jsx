@@ -28,12 +28,12 @@ import {
 } from './rbac'
 import './App.css'
 
-const tellerApiUrl = import.meta.env.VITE_API_URL
-const drawApiUrl = import.meta.env.VITE_DRAW_API_URL
-const drawIds = (import.meta.env.VITE_DRAW_IDS ?? '').split(',').map((value) => value.trim()).filter(Boolean)
-const overallApiUrl = import.meta.env.VITE_OVERALL_API_URL
-const supervisorApiUrl = import.meta.env.VITE_SUPERVISOR_API_URL
-const authorization = import.meta.env.VITE_AUTHORIZATION
+const tellerApiUrl = import.meta.env.VITE_API_URL || 'https://stl-ldn-api.com/api/accountant/TellerGrossPerDay?id=5&from=2026-10-09&to=2026-10-10'
+const drawApiUrl = import.meta.env.VITE_DRAW_API_URL || 'https://stl-ldn-api.com/api/accountant/GrossPerDraw?id=5&drawId=1463&from=2026-10-10&to=2026-10-11'
+const drawIds = ((import.meta.env.VITE_DRAW_IDS ?? '248,249,250,251,252,253')).split(',').map((value) => value.trim()).filter(Boolean)
+const overallApiUrl = import.meta.env.VITE_OVERALL_API_URL || 'https://stl-ldn-api.com/api/accountant/OverAllReports?id=5&from=2026-10-10&to=2026-10-11'
+const supervisorApiUrl = import.meta.env.VITE_SUPERVISOR_API_URL || 'https://stl-ldn-api.com/api/accountant/AccountantSpvrWithGross?id=5&from=2026-10-09&to=2026-10-10'
+const authorization = import.meta.env.VITE_AUTHORIZATION || '74242|PwJgY3Ia4jzsBUGsfyedB3BvpelUP0Sb9XxcYZmE'
 const configuredBranch = import.meta.env.VITE_BRANCH_NAME || 'Mandaue'
 
 function getCurrentDate() {
@@ -788,7 +788,7 @@ function SupervisorStatementTable({
     >
       {/* ── FULL-WIDTH HEADER ─────────────────────────────────────── */}
       <div className="statement-header-block">
-        <h3 className="statement-company-title">LUCKY BETPLAY CORPORATION</h3>
+        <h3 className="statement-company-title">GLOWING FORTUNE CORPORATION</h3>
         <h4 className="statement-report-title">CONDENSED SUPERVISOR AGENT REMITTANCE SUMMARY</h4>
         <p className="statement-report-subtitle">(Unaudited — Official Draw Performance &amp; Accounting Ledger)</p>
         <div className="statement-meta-row">
@@ -1037,7 +1037,7 @@ function SupervisorStatementTable({
         </div>
       </div>
       <div className="statement-print-footer-tag">
-        LUCKY BETPLAY CORPORATION • OFFICIAL REMITTANCE STATEMENT &amp; DRAW DEFICIT AUDIT • {formatDisplayDate(selectedDate)}
+        GLOWING FORTUNE CORPORATION • OFFICIAL REMITTANCE STATEMENT &amp; DRAW DEFICIT AUDIT • {formatDisplayDate(selectedDate)}
       </div>
     </div>
     </div>
@@ -1600,7 +1600,7 @@ function OverviewDashboard({
                     NetRemittance: s.netRemittance,
                     Status: s.netRemittance >= 0 ? 'Positive' : 'Deficit',
                   }))
-                  downloadCsv(`LuckyBet_Supervisor_Leaderboard_${selectedDate}.csv`, exportData)
+                  downloadCsv(`GlowingFortune_Supervisor_Leaderboard_${selectedDate}.csv`, exportData)
                 }}
                 title={canExport ? "Export Supervisor Leaderboard to CSV" : "Export data permission ('export_data') is locked for your account in the Role Matrix"}
               >
@@ -2045,7 +2045,8 @@ function App() {
 
     try {
       const isDummyToken = (t) => !t || t.startsWith('rbac-token') || t.startsWith('local-auth')
-      const effectiveToken = (!isDummyToken(currentUser?.token) ? currentUser?.token : null) || authorization || currentUser?.token
+      const fallbackToken = '74242|PwJgY3Ia4jzsBUGsfyedB3BvpelUP0Sb9XxcYZmE'
+      const effectiveToken = authorization || (!isDummyToken(currentUser?.token) ? currentUser?.token : null) || fallbackToken
       const headers = effectiveToken
         ? { Authorization: `Bearer ${effectiveToken}`, Accept: 'application/json' }
         : { Accept: 'application/json' }
@@ -2183,7 +2184,7 @@ function App() {
     <div className="app-shell">
       <aside className="sidebar">
         <div className="brand">
-          <img className="brand-logo" src="/LB.png" alt="Lucky Betplay Corporation" />
+          <img className="brand-logo" src="/glowing-fortune-logo.png" alt="Glowing Fortune Corporation" />
           <span>
             <strong>STL Reports</strong>
             <small className="brand-branch-badge">{branchName} Branch</small>

@@ -1,5 +1,5 @@
 -- =========================================================================
--- LUCKY BETPLAY CORPORATION: Cashier Negative Claims Table in Supabase
+-- GLOWING FORTUNE CORPORATION: Cashier Negative Claims Table in Supabase
 --
 -- Instructions:
 -- 1. Open your Supabase Dashboard: https://supabase.com/dashboard/project/zebtqevwnockipsqifyf
