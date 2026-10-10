@@ -133,8 +133,8 @@ function SvgIcon({ name, size = 16, className = '' }) {
   )
 }
 
-export default function LoginPage({ onLoginSuccess, branchName = 'Mandaue' }) {
-  const [username, setUsername] = useState('mandaue.staff')
+export default function LoginPage({ onLoginSuccess, branchName = 'LDN' }) {
+  const [username, setUsername] = useState('ldn.staff')
   const [password, setPassword] = useState('luckybet2026')
   const [showPassword, setShowPassword] = useState(false)
   const [rememberMe, setRememberMe] = useState(true)
@@ -295,7 +295,7 @@ export default function LoginPage({ onLoginSuccess, branchName = 'Mandaue' }) {
       // 3. Fallback: Optional remote backend accounting API (if deployed)
       if (!loginSuccess) {
         try {
-          const loginUrl = new URL('https://stl-mandaue-api.com/api/accountant/login')
+          const loginUrl = new URL('https://stl-ldn-api.com/api/accountant/login')
           const res = await fetch(loginUrl, {
             method: 'POST',
             headers: {
@@ -375,7 +375,7 @@ export default function LoginPage({ onLoginSuccess, branchName = 'Mandaue' }) {
         {/* ================================================================= */}
         <section
           className="stl-hero-panel"
-          aria-label="STL Mandaue Interactive Showcase"
+          aria-label="STL LDN Interactive Showcase"
           onMouseEnter={() => setIsPaused(true)}
           onMouseLeave={() => setIsPaused(false)}
         >
@@ -830,7 +830,7 @@ export default function LoginPage({ onLoginSuccess, branchName = 'Mandaue' }) {
                     className="stl-text-input"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
-                    placeholder="e.g. mandaue.staff or your email"
+                    placeholder="e.g. ldn.staff or your email"
                     autoComplete="username"
                     required
                   />
@@ -956,7 +956,7 @@ export default function LoginPage({ onLoginSuccess, branchName = 'Mandaue' }) {
               <div className="stl-modal-tip-box">
                 <strong>Evaluation Credentials:</strong>
                 <span>
-                  Username: <code>mandaue.staff</code>
+                  Username: <code>ldn.staff</code>
                   <br />
                   Password: <code>luckybet2026</code>
                 </span>

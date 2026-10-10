@@ -186,7 +186,7 @@ export default function FacebookProfileDropdown({
                   @{currentUser?.username || 'user'} &bull; {userRoleText}
                 </span>
                 <span className="fb-profile-branch">
-                  {currentUser?.branch || 'Mandaue Branch'}
+                  {currentUser?.branch || 'LDN Branch'}
                 </span>
               </div>
             </div>
@@ -405,7 +405,7 @@ export default function FacebookProfileDropdown({
 
           {/* 4. Footer Note */}
           <div className="fb-dropdown-footer">
-            <span>Glowing Fortune Corporation &bull; Mandaue Branch</span>
+            <span>Glowing Fortune Corporation &bull; LDN Branch</span>
           </div>
         </div>
       )}

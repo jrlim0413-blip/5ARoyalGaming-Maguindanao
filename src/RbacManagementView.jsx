@@ -76,10 +76,10 @@ WITH CHECK (true);
 
 INSERT INTO public.rbac_users (id, username, password, name, role, role_label, branch, status, avatar, email)
 VALUES
-  ('usr_admin', 'admin', 'adminpassword', 'Jay Ryan Lim', 'admin', 'System Administrator', 'Mandaue HQ (All Zones)', 'active', 'JL', 'admin@luckybetplay.ph'),
-  ('usr_accountant', 'mandaue.staff', 'luckybet2026', 'Elena Morales', 'accountant', 'Head Cashier', 'Mandaue Branch', 'active', 'EM', 'elena.m@luckybetplay.ph'),
-  ('usr_supervisor', 'supervisor.carlos', 'luckybet2026', 'Carlos Tan', 'supervisor', 'Branch Supervisor', 'Mandaue Central Zone', 'active', 'CT', 'carlos.tan@luckybetplay.ph'),
-  ('usr_terminal', 'teller.mandaue', 'luckybet2026', 'Rico Dela Cruz', 'staff', 'Terminal Staff', 'Mandaue Terminal 01', 'active', 'RD', 'rico.staff@luckybetplay.ph')
+  ('usr_admin', 'admin', 'adminpassword', 'Jay Ryan Lim', 'admin', 'System Administrator', 'LDN HQ (All Zones)', 'active', 'JL', 'admin@glowingfortune.ph'),
+  ('usr_accountant', 'ldn.staff', 'luckybet2026', 'Elena Morales', 'accountant', 'Head Cashier', 'LDN Branch', 'active', 'EM', 'elena.m@glowingfortune.ph'),
+  ('usr_supervisor', 'supervisor.carlos', 'luckybet2026', 'Carlos Tan', 'supervisor', 'Branch Supervisor', 'LDN Central Zone', 'active', 'CT', 'carlos.tan@glowingfortune.ph'),
+  ('usr_terminal', 'teller.ldn', 'luckybet2026', 'Rico Dela Cruz', 'staff', 'Terminal Staff', 'LDN Terminal 01', 'active', 'RD', 'rico.staff@glowingfortune.ph')
 ON CONFLICT (username) DO UPDATE SET
   password = EXCLUDED.password,
   name = EXCLUDED.name,
@@ -238,7 +238,7 @@ function SvgIcon({ name, size = 16, className = '' }) {
   )
 }
 
-export default function RbacManagementView({ currentUser, onSimulateUser, branchName = 'Mandaue', initialTab = 'users' }) {
+export default function RbacManagementView({ currentUser, onSimulateUser, branchName = 'LDN', initialTab = 'users' }) {
   const [users, setUsers] = useState(() => getRbacUsers())
   const [roles, setRoles] = useState(() => getRbacRoles())
   const [auditLogs, setAuditLogs] = useState(() => getAuditLogs())
@@ -1832,7 +1832,7 @@ export default function RbacManagementView({ currentUser, onSimulateUser, branch
                     type="text"
                     value={formData.branch}
                     onChange={(e) => setFormData({ ...formData, branch: e.target.value })}
-                    placeholder="e.g. Mandaue Branch"
+                    placeholder="e.g. LDN Branch"
                   />
                 </div>
               </div>

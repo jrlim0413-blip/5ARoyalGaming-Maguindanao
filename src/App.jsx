@@ -34,7 +34,7 @@ const drawIds = ((import.meta.env.VITE_DRAW_IDS ?? '248,249,250,251,252,253')).s
 const overallApiUrl = import.meta.env.VITE_OVERALL_API_URL || 'https://stl-ldn-api.com/api/accountant/OverAllReports?id=5&from=2026-10-10&to=2026-10-11'
 const supervisorApiUrl = import.meta.env.VITE_SUPERVISOR_API_URL || 'https://stl-ldn-api.com/api/accountant/AccountantSpvrWithGross?id=5&from=2026-10-09&to=2026-10-10'
 const authorization = import.meta.env.VITE_AUTHORIZATION || '74242|PwJgY3Ia4jzsBUGsfyedB3BvpelUP0Sb9XxcYZmE'
-const configuredBranch = import.meta.env.VITE_BRANCH_NAME || 'Mandaue'
+const configuredBranch = import.meta.env.VITE_BRANCH_NAME || 'LDN'
 
 function getCurrentDate() {
   return formatDate(new Date())
@@ -1025,7 +1025,7 @@ function SupervisorStatementTable({
       <div className="statement-signatures-section">
         <div className="statement-sig-column">
           <div className="statement-sig-line" />
-          <span className="statement-sig-title">SUPERVISOR - {branchName ? branchName.toUpperCase() : 'MANDAUE CITY'}</span>
+          <span className="statement-sig-title">SUPERVISOR - {branchName ? branchName.toUpperCase() : 'LDN'}</span>
           <strong className="statement-sig-name">{group?.supervisor || 'BRANCH SUPERVISOR'}</strong>
           <span className="statement-sig-date">Date Signed: _____________________</span>
         </div>

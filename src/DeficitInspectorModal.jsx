@@ -72,7 +72,7 @@ export default function DeficitInspectorModal({
     { key: 'evening', label: '3rd Draw', schedule: '7:00 PM + 9:00 PM', times: ['7:00 PM', '9:00 PM'] },
   ],
   selectedDate,
-  branchName = 'Mandaue',
+  branchName = 'LDN',
 }) {
   const [activeModalTab, setActiveModalTab] = useState('breakdown') // 'breakdown' | 'cashier_claims'
   const [selectedDrawFilter, setSelectedDrawFilter] = useState('all') // 'all', 'morning', 'afternoon', 'evening', 'remittance', or specific time '10:30 AM', etc.
