@@ -34,6 +34,18 @@ import {
   subscribeToMatrixRealtime,
 } from './supabase'
 
+const supabaseSqlUrl = (() => {
+  try {
+    const rawUrl = typeof import.meta !== 'undefined' && import.meta.env ? import.meta.env.VITE_SUPABASE_URL : ''
+    if (rawUrl) {
+      const hostname = new URL(rawUrl).hostname
+      const projectRef = hostname.split('.')[0]
+      if (projectRef) return `https://supabase.com/dashboard/project/${projectRef}/sql`
+    }
+  } catch { }
+  return 'https://supabase.com/dashboard'
+})()
+
 const SQL_SCRIPT_TEXT = `-- Dedicated rbac_users table for Cloud Directory
 CREATE TABLE IF NOT EXISTS public.rbac_users (
   id TEXT PRIMARY KEY,
@@ -2051,7 +2063,7 @@ export default function RbacManagementView({ currentUser, onSimulateUser, branch
               <div className="sql-instruction-step">
                 <strong>How to setup in 1 minute:</strong>
                 <ol>
-                  <li>Open your Cloud Database Project: <a href="https://supabase.com/dashboard/project/zebtqevwnockipsqifyf/sql" target="_blank" rel="noreferrer">SQL Editor</a>.</li>
+                  <li>Open your Cloud Database Project: <a href={supabaseSqlUrl} target="_blank" rel="noreferrer">SQL Editor</a>.</li>
                   <li>Click <strong>New Query</strong>, paste the script below, and click <strong>Run</strong>.</li>
                   <li>Once created, this workstation will automatically authenticate accounts directly from your cloud directory!</li>
                 </ol>
