@@ -1,4 +1,4 @@
-// src/commissions.js - Hierarchical Commission Store & Calculation Service for Glowing Fortune Corporation
+// src/commissions.js - Hierarchical Commission Store & Calculation Service for Imperial Gaming OPC
 import { saveSupabaseCommissionSettings } from './supabase.js'
 
 const COMMISSIONS_STORAGE_KEY = 'luckybet_commission_settings'

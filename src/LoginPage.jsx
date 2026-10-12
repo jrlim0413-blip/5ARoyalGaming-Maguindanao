@@ -156,7 +156,7 @@ export default function LoginPage({ onLoginSuccess, branchName = 'LDN' }) {
       id: 'brand',
       eyebrow: 'AUTHORIZED GAMING OPERATOR',
       tag: 'PCSO COMPLIANT',
-      title: 'Glowing Fortune Corporation',
+      title: 'Imperial Gaming OPC',
       subtitle:
         'Official accounting workstation and certified draw sales auditing engine for authorized STL staff.',
       type: 'brand',
@@ -468,8 +468,8 @@ export default function LoginPage({ onLoginSuccess, branchName = 'LDN' }) {
                       <h1 className="stl-hero-title">
                         {slide.id === 'brand' ? (
                           <>
-                            <span className="hero-title-main">Glowing</span>{' '}
-                            <span className="hero-title-accent">Fortune</span>
+                            <span className="hero-title-main">Imperial Gaming</span>{' '}
+                            <span className="hero-title-accent">OPC</span>
                           </>
                         ) : slide.id === 'matrix' ? (
                           <>
@@ -500,8 +500,8 @@ export default function LoginPage({ onLoginSuccess, branchName = 'LDN' }) {
                           <div className="stl-emblem-solar-ring" aria-hidden="true" />
                           <div className="stl-solar-corona-glow" aria-hidden="true" />
                           <img
-                            src="/glowing-fortune-logo.png"
-                            alt="Glowing Fortune Corporation"
+                            src="/imperial-gaming-logo.png"
+                            alt="Imperial Gaming OPC"
                             className="lb-hero-emblem-img"
                           />
                           <div className="stl-emblem-floating-chip chip-left">

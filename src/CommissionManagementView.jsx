@@ -1,4 +1,4 @@
-// src/CommissionManagementView.jsx - Hierarchical Agent Commission Management View for Glowing Fortune Corporation
+// src/CommissionManagementView.jsx - Hierarchical Agent Commission Management View for Imperial Gaming OPC
 import React, { useState, useEffect, useMemo } from 'react'
 import {
   loadCommissionSettings,

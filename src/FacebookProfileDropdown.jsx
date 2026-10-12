@@ -405,7 +405,7 @@ export default function FacebookProfileDropdown({
 
           {/* 4. Footer Note */}
           <div className="fb-dropdown-footer">
-            <span>Glowing Fortune Corporation &bull; LDN Branch</span>
+            <span>Imperial Gaming OPC &bull; LDN Branch</span>
           </div>
         </div>
       )}

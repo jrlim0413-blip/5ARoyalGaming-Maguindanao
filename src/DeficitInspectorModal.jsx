@@ -482,7 +482,7 @@ export default function DeficitInspectorModal({
   const handleCopySummary = () => {
     if (filteredRecords.length === 0) return
 
-    let text = `📋 GLOWING FORTUNE - DEFICIT SUMMARY\n`
+    let text = `📋 IMPERIAL GAMING OPC - DEFICIT SUMMARY\n`
     text += `🏢 Branch: ${branchName} | 📅 Date: ${selectedDate}\n`
     text += `-------------------------------------------\n`
 
@@ -557,7 +557,7 @@ export default function DeficitInspectorModal({
     const encodedUri = encodeURI(csvContent)
     const link = document.createElement('a')
     link.setAttribute('href', encodedUri)
-    link.setAttribute('download', `GlowingFortune_Deficits_${branchName}_${selectedDate}_${selectedDrawFilter}.csv`)
+    link.setAttribute('download', `ImperialGamingOPC_Deficits_${branchName}_${selectedDate}_${selectedDrawFilter}.csv`)
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)

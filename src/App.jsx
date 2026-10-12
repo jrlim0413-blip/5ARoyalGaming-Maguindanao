@@ -182,6 +182,12 @@ export function Icon({ name, size = 18 }) {
         <line x1="3" y1="10" x2="21" y2="10" />
       </>
     ),
+    clock: (
+      <>
+        <circle cx="12" cy="12" r="10" />
+        <polyline points="12 6 12 12 16 14" />
+      </>
+    ),
     history: (
       <>
         <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
@@ -788,7 +794,7 @@ function SupervisorStatementTable({
     >
       {/* ── FULL-WIDTH HEADER ─────────────────────────────────────── */}
       <div className="statement-header-block">
-        <h3 className="statement-company-title">GLOWING FORTUNE CORPORATION</h3>
+        <h3 className="statement-company-title">IMPERIAL GAMING OPC</h3>
         <h4 className="statement-report-title">CONDENSED SUPERVISOR AGENT REMITTANCE SUMMARY</h4>
         <p className="statement-report-subtitle">(Unaudited — Official Draw Performance &amp; Accounting Ledger)</p>
         <div className="statement-meta-row">
@@ -1037,7 +1043,7 @@ function SupervisorStatementTable({
         </div>
       </div>
       <div className="statement-print-footer-tag">
-        GLOWING FORTUNE CORPORATION • OFFICIAL REMITTANCE STATEMENT &amp; DRAW DEFICIT AUDIT • {formatDisplayDate(selectedDate)}
+        IMPERIAL GAMING OPC • OFFICIAL REMITTANCE STATEMENT &amp; DRAW DEFICIT AUDIT • {formatDisplayDate(selectedDate)}
       </div>
     </div>
     </div>
@@ -1404,8 +1410,16 @@ function OverviewDashboard({
         <section className="overview-draws-section">
           <div className="overview-section-header">
             <div className="overview-section-title-wrap">
-              <h3><Icon name="sparkles" size={16} /> Draw Results &amp; Winnings Snapshot</h3>
-              <p>Official 3D &amp; 4D winning numbers with gross and payout margins per draw schedule</p>
+              <h3><Icon name="sparkles" size={17} /> Draw Results &amp; Winnings Snapshot</h3>
+              <p>Official 3D, 2D &amp; 4D winning numbers with gross sales, payout margins, and house retention per draw</p>
+            </div>
+            <div className="overview-section-stats-pill">
+              <span className="pill-dot" />
+              <span className="pill-bold">{overallDraws.length} Draws Tracked</span>
+              <span className="pill-divider">•</span>
+              <span className="pill-tag-pcso">{overallDraws.filter(d => !getDrawScheduleMeta(d.drawTime).isLocal).length} PCSO National</span>
+              <span className="pill-divider">•</span>
+              <span className="pill-tag-stl">{overallDraws.filter(d => getDrawScheduleMeta(d.drawTime).isLocal).length} Local STL</span>
             </div>
           </div>
 
@@ -1416,46 +1430,125 @@ function OverviewDashboard({
               const hits = Number(row.TotalOveAllHits ?? row.TotalOverAllHits) || 0
               const kabig = Number(row.TotalOveAllKabig ?? row.TotalOverAllKabig) || (gross - hits)
               const ratio = gross > 0 ? (hits / gross) * 100 : 0
-              const s3Digits = String(row.s3_result || '').split('')
+              const result3D = row.s3_result || row.l3_result || null
+              const s3Digits = result3D ? String(result3D).split('') : []
+              const showAltL3 = Boolean(row.s3_result && row.l3_result && row.s3_result !== row.l3_result)
+              const hasSideGames = Boolean(row.l2_result || row.s4_result || showAltL3)
+              const rotationLabel = (meta.time === '10:30 AM' || meta.time === '2:00 PM')
+                ? '1st Rotation'
+                : (meta.time === '3:00 PM' || meta.time === '5:00 PM')
+                ? '2nd Rotation'
+                : '3rd Rotation'
 
               return (
-                <div key={row.id || idx} className="draw-result-card">
+                <div key={row.id || idx} className={`draw-result-card ${meta.isLocal ? 'card-local' : 'card-pcso'}`}>
+                  {/* Card Header */}
                   <div className="draw-card-top-bar">
-                    <span className="draw-time-tag">Draw {meta.time}</span>
-                    <span className={`draw-type-badge ${meta.isLocal ? 'type-local' : 'type-pcso'}`}>{meta.type}</span>
+                    <div className="draw-card-time-wrap">
+                      <span className="draw-clock-icon"><Icon name="clock" size={13} /></span>
+                      <strong className="draw-time-tag">Draw {meta.time}</strong>
+                      <span className="draw-rotation-badge">{rotationLabel}</span>
+                    </div>
+                    <span className={`draw-type-badge ${meta.isLocal ? 'type-local' : 'type-pcso'}`}>
+                      {meta.isLocal ? 'Local STL' : 'PCSO National'}
+                    </span>
                   </div>
 
-                  <div className="lotto-balls-row">
-                    {s3Digits.length > 0 && row.s3_result ? (
-                      s3Digits.map((d, dIdx) => (
-                        <span key={dIdx} className="lotto-ball">{d}</span>
-                      ))
+                  {/* Winning Results Showcase */}
+                  <div className="draw-card-results-showcase">
+                    <div className="draw-hero-winner-box">
+                      <div className="winner-label-row">
+                        <span className="game-type-caption">
+                          {meta.isLocal ? 'STL 3D WINNING NUMBER' : 'PCSO 3D LOTTO'}
+                        </span>
+                        <span className="winner-live-beacon">
+                          <span className="beacon-dot" />
+                          Certified
+                        </span>
+                      </div>
+
+                      <div className="lotto-balls-display">
+                        {s3Digits.length > 0 ? (
+                          <div className="lotto-balls-group">
+                            {s3Digits.map((d, dIdx) => (
+                              <div key={dIdx} className="lotto-ball-hero" title={`Digit ${d}`}>
+                                <span className="ball-shine" aria-hidden="true" />
+                                <span className="ball-number">{d}</span>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="lotto-ball-pending">
+                            <span>Pending Result</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Dedicated Side Games Tray for PCSO (2D & 4D) - clean, non-cramped */}
+                    {hasSideGames ? (
+                      <div className="draw-side-games-tray">
+                        {row.l2_result && (
+                          <div className="side-game-badge badge-2d" title="PCSO 2D Lotto Winning Number">
+                            <span className="badge-tag">2D LOTTO</span>
+                            <span className="badge-val">{row.l2_result}</span>
+                          </div>
+                        )}
+                        {showAltL3 && (
+                          <div className="side-game-badge badge-l3" title="PCSO National 3D">
+                            <span className="badge-tag">PCSO 3D</span>
+                            <span className="badge-val">{row.l3_result}</span>
+                          </div>
+                        )}
+                        {row.s4_result && (
+                          <div className="side-game-badge badge-4d" title="PCSO 4D Lotto Winning Number">
+                            <span className="badge-tag">4D LOTTO</span>
+                            <span className="badge-val">{row.s4_result}</span>
+                          </div>
+                        )}
+                      </div>
                     ) : (
-                      <span className="lotto-ball lotto-ball-empty">No S3</span>
-                    )}
-                    {row.s4_result && (
-                      <span className="lotto-ball-4d" title="4D Result">4D: {row.s4_result}</span>
+                      <div className="draw-side-games-placeholder">
+                        <span className="side-placeholder-text">Standard 3D STL Rotation</span>
+                      </div>
                     )}
                   </div>
 
-                  <div className="draw-card-metrics">
-                    <div className="draw-metric-line">
-                      <span className="label">Gross:</span>
-                      <span className="val">{formatCurrency(gross)}</span>
+                  {/* Financial & Audit Metrics */}
+                  <div className="draw-card-financial-strip">
+                    <div className="draw-stats-dual-row">
+                      <div className="stat-pod">
+                        <span className="pod-label">GROSS SALES</span>
+                        <span className="pod-val pod-gross">{formatCurrency(gross)}</span>
+                      </div>
+                      <div className="stat-pod">
+                        <span className="pod-label">HITS (PAYOUT)</span>
+                        <span className={`pod-val ${hits > 0 ? 'pod-hits' : 'pod-zero'}`}>
+                          {formatCurrency(hits)}
+                        </span>
+                      </div>
                     </div>
-                    <div className="draw-metric-line">
-                      <span className="label">Hits:</span>
-                      <span className="val val-hits">{formatCurrency(hits)}</span>
+
+                    <div className="draw-kabig-highlight-row">
+                      <span className="kabig-lbl">HOUSE KABIG:</span>
+                      <span className={`kabig-badge ${kabig < 0 ? 'kabig-deficit' : 'kabig-positive'}`}>
+                        {formatCurrency(kabig)}
+                      </span>
                     </div>
-                    <div className="draw-metric-line">
-                      <span className="label">Kabig:</span>
-                      <span className="val val-kabig">{formatCurrency(kabig)}</span>
-                    </div>
-                    <div className="draw-ratio-bar-wrap" title={`Payout: ${ratio.toFixed(1)}%`}>
-                      <div
-                        className={`draw-ratio-bar-fill ${ratio > 50 ? 'bar-high-hits' : ''}`}
-                        style={{ width: `${Math.min(ratio, 100)}%` }}
-                      />
+
+                    <div className="draw-ratio-meter">
+                      <div className="ratio-meter-labels">
+                        <span className="ratio-title">Payout Ratio</span>
+                        <span className={`ratio-value ${ratio > 50 ? 'val-high' : ratio > 35 ? 'val-mid' : 'val-safe'}`}>
+                          {ratio.toFixed(1)}% {ratio > 50 ? '• High Hits' : '• Retention Safe'}
+                        </span>
+                      </div>
+                      <div className="ratio-meter-track">
+                        <div
+                          className={`ratio-meter-fill ${ratio > 50 ? 'meter-high' : ratio > 35 ? 'meter-mid' : 'meter-safe'}`}
+                          style={{ width: `${Math.min(ratio, 100)}%` }}
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1496,7 +1589,9 @@ function OverviewDashboard({
                   const hits = Number(row.TotalOveAllHits ?? row.TotalOverAllHits) || 0
                   const kabig = Number(row.TotalOveAllKabig ?? row.TotalOverAllKabig) || (gross - hits)
                   const ratio = gross > 0 ? (hits / gross) * 100 : 0
-                  const s3Digits = String(row.s3_result || '').split('')
+                  const result3D = row.s3_result || row.l3_result || null
+                  const s3Digits = result3D ? String(result3D).split('') : []
+                  const showAltL3 = Boolean(row.s3_result && row.l3_result && row.s3_result !== row.l3_result)
 
                   return (
                     <tr key={row.id || idx}>
@@ -1511,15 +1606,23 @@ function OverviewDashboard({
                         </span>
                       </td>
                       <td>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                          {s3Digits.length > 0 && row.s3_result ? (
-                            s3Digits.map((d, dIdx) => (
-                              <span key={dIdx} className="lotto-ball" style={{ width: '22px', height: '22px', fontSize: '11px', lineHeight: '22px' }}>{d}</span>
-                            ))
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                          {s3Digits.length > 0 ? (
+                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                              {s3Digits.map((d, dIdx) => (
+                                <span key={dIdx} className="lotto-ball" style={{ width: '23px', height: '23px', fontSize: '11.5px', lineHeight: '23px', fontWeight: 900 }}>{d}</span>
+                              ))}
+                            </div>
                           ) : (
-                            <span style={{ color: '#94a3b8' }}>-</span>
+                            <span style={{ color: '#94a3b8', fontSize: '11px', fontWeight: 600 }}>Pending</span>
                           )}
-                          {row.s4_result && <span className="lotto-ball-4d">{row.s4_result}</span>}
+                          {row.l2_result && (
+                            <span className="lotto-ball-2d" title="PCSO 2D Lotto Winning Number">2D: {row.l2_result}</span>
+                          )}
+                          {showAltL3 && (
+                            <span className="lotto-ball-alt" title="PCSO National 3D">L3: {row.l3_result}</span>
+                          )}
+                          {row.s4_result && <span className="lotto-ball-4d" title="PCSO 4D Lotto Winning Number">4D: {row.s4_result}</span>}
                         </div>
                       </td>
                       <td className="num-col">₱ {formatAmount(gross)}</td>
@@ -1600,7 +1703,7 @@ function OverviewDashboard({
                     NetRemittance: s.netRemittance,
                     Status: s.netRemittance >= 0 ? 'Positive' : 'Deficit',
                   }))
-                  downloadCsv(`GlowingFortune_Supervisor_Leaderboard_${selectedDate}.csv`, exportData)
+                  downloadCsv(`ImperialGamingOPC_Supervisor_Leaderboard_${selectedDate}.csv`, exportData)
                 }}
                 title={canExport ? "Export Supervisor Leaderboard to CSV" : "Export data permission ('export_data') is locked for your account in the Role Matrix"}
               >
@@ -1896,7 +1999,8 @@ function App() {
           const cleaned = val.replace(/Mandaue/gi, 'LDN')
             .replace(/mandaue\.staff/gi, 'ldn.staff')
             .replace(/teller\.mandaue/gi, 'teller.ldn')
-            .replace(/luckybetplay\.ph/gi, 'glowingfortune.ph')
+            .replace(/luckybetplay\.ph/gi, 'imperialgamingopc.ph')
+            .replace(/glowingfortune\.ph/gi, 'imperialgamingopc.ph')
           localStorage.setItem(key, cleaned)
         }
       })
@@ -2206,7 +2310,7 @@ function App() {
     <div className="app-shell">
       <aside className="sidebar">
         <div className="brand">
-          <img className="brand-logo" src="/glowing-fortune-logo.png" alt="Glowing Fortune Corporation" />
+          <img className="brand-logo" src="/imperial-gaming-logo.png" alt="Imperial Gaming OPC" />
           <span>
             <strong>STL Reports</strong>
             <small className="brand-branch-badge">{branchName} Branch</small>

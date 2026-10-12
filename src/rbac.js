@@ -1,4 +1,4 @@
-// src/rbac.js - Role-Based Access Control (RBAC) & Credential Store for Glowing Fortune Corporation
+// src/rbac.js - Role-Based Access Control (RBAC) & Credential Store for Imperial Gaming OPC
 import { saveSupabaseMatrixConfig } from './supabase.js'
 
 const USERS_STORAGE_KEY = 'luckybet_rbac_users'
@@ -185,7 +185,7 @@ export const DEFAULT_USERS = [
     lastLogin: 'Active Now',
     createdAt: '2026-01-15',
     avatar: 'JL',
-    email: 'admin@glowingfortune.ph',
+    email: 'admin@imperialgamingopc.ph',
   },
   {
     id: 'usr_accountant',
@@ -199,7 +199,7 @@ export const DEFAULT_USERS = [
     lastLogin: 'Today, 09:15 AM',
     createdAt: '2026-02-01',
     avatar: 'EM',
-    email: 'elena.m@glowingfortune.ph',
+    email: 'elena.m@imperialgamingopc.ph',
   },
   {
     id: 'usr_supervisor',
@@ -213,7 +213,7 @@ export const DEFAULT_USERS = [
     lastLogin: 'Yesterday, 04:30 PM',
     createdAt: '2026-02-10',
     avatar: 'CT',
-    email: 'carlos.tan@glowingfortune.ph',
+    email: 'carlos.tan@imperialgamingopc.ph',
   },
   {
     id: 'usr_terminal',
@@ -227,7 +227,7 @@ export const DEFAULT_USERS = [
     lastLogin: '3 days ago',
     createdAt: '2026-02-20',
     avatar: 'RD',
-    email: 'rico.staff@glowingfortune.ph',
+    email: 'rico.staff@imperialgamingopc.ph',
   },
 ]
 
@@ -392,7 +392,7 @@ export function getRbacUsers() {
         let changed = false
         const sanitized = parsed.map((u) => {
           const newBranch = sanitizeBranchString(u.branch)
-          const newEmail = u.email ? u.email.replace(/luckybetplay\.ph/gi, 'glowingfortune.ph') : u.email
+          const newEmail = u.email ? u.email.replace(/luckybetplay\.ph/gi, 'imperialgamingopc.ph').replace(/glowingfortune\.ph/gi, 'imperialgamingopc.ph') : u.email
           const newUsername = u.username ? u.username.replace(/^mandaue\.staff$/i, 'ldn.staff').replace(/^teller\.mandaue$/i, 'teller.ldn') : u.username
           if (newBranch !== u.branch || newEmail !== u.email || newUsername !== u.username) {
             changed = true
