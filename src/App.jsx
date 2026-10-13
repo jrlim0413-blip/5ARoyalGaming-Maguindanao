@@ -26,13 +26,21 @@ import {
   DEFAULT_ROLES,
   DEFAULT_USERS,
 } from './rbac'
+import {
+  ALL_MUNICIPALITIES,
+  MUNICIPALITIES,
+  buildSupervisorMunicipalityLookup,
+  resolveMunicipalityFromBranch,
+  getRowMunicipality,
+} from './municipalities'
 import './App.css'
 
 const tellerApiUrl = import.meta.env.VITE_API_URL || 'https://stl-ldn-api.com/api/accountant/TellerGrossPerDay?id=5&from=2026-10-09&to=2026-10-10'
 const drawApiUrl = import.meta.env.VITE_DRAW_API_URL || 'https://stl-ldn-api.com/api/accountant/GrossPerDraw?id=5&drawId=1463&from=2026-10-10&to=2026-10-11'
 const drawIds = ((import.meta.env.VITE_DRAW_IDS ?? '248,249,250,251,252,253')).split(',').map((value) => value.trim()).filter(Boolean)
 const overallApiUrl = import.meta.env.VITE_OVERALL_API_URL || 'https://stl-ldn-api.com/api/accountant/OverAllReports?id=5&from=2026-10-10&to=2026-10-11'
-const supervisorApiUrl = import.meta.env.VITE_SUPERVISOR_API_URL || 'https://stl-ldn-api.com/api/accountant/AccountantSpvrWithGross?id=5&from=2026-10-09&to=2026-10-10'
+const muniSupervisorApiUrl = import.meta.env.VITE_MUNI_SUPERVISOR_API_URL || import.meta.env.VITE_SUPERVISOR_API_URL || 'https://stl-mag-api.com/api/accountant/supervisor?id=2'
+const supervisorApiUrl = muniSupervisorApiUrl
 const authorization = import.meta.env.VITE_AUTHORIZATION || ''
 const configuredBranch = import.meta.env.VITE_BRANCH_NAME || 'LDN'
 
@@ -311,6 +319,30 @@ export function Icon({ name, size = 18 }) {
         <line x1="21" y1="12" x2="9" y2="12" />
       </>
     ),
+    municipality: (
+      <>
+        <line x1="2" y1="22" x2="22" y2="22" />
+        <line x1="12" y1="2" x2="12" y2="5" />
+        <path d="M4 11V7.5L12 3l8 4.5V11" />
+        <line x1="6" y1="18" x2="6" y2="11" />
+        <line x1="10" y1="18" x2="10" y2="11" />
+        <line x1="14" y1="18" x2="14" y2="11" />
+        <line x1="18" y1="18" x2="18" y2="11" />
+        <line x1="3" y1="18" x2="21" y2="18" />
+      </>
+    ),
+    landmark: (
+      <>
+        <line x1="2" y1="22" x2="22" y2="22" />
+        <line x1="12" y1="2" x2="12" y2="5" />
+        <path d="M4 11V7.5L12 3l8 4.5V11" />
+        <line x1="6" y1="18" x2="6" y2="11" />
+        <line x1="10" y1="18" x2="10" y2="11" />
+        <line x1="14" y1="18" x2="14" y2="11" />
+        <line x1="18" y1="18" x2="18" y2="11" />
+        <line x1="3" y1="18" x2="21" y2="18" />
+      </>
+    ),
     check: <polyline points="20 6 9 17 4 12" />,
   }
   return <svg className="ui-icon" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.65" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{paths[name]}</svg>
@@ -341,20 +373,36 @@ function getFirstField(row, fieldNames) {
   return fieldName ? row[fieldName] : null
 }
 
-function getSupervisorReports(rows, supervisorRows = [], commissionSettings = null) {
+function getSupervisorReports(rows, supervisorRows = [], commissionSettings = null, muniLookup = null) {
   const supervisorNames = new Map(supervisorRows.map((row) => [String(row.username), row.fullName]))
   const supervisorNamesById = new Map(supervisorRows.map((row) => [String(row.id), row.fullName]))
   const grouped = new Map()
   rows.forEach((row) => {
     const supervisorUsername = String(row.supervisorUsername ?? '')
     const supervisor = formatValue(supervisorNamesById.get(String(row.supervisor)) ?? supervisorNames.get(supervisorUsername) ?? getFirstField(row, supervisorFieldNames)).toUpperCase()
+    
+    const municipality = getRowMunicipality(row, muniLookup)
+
     const gross = Number(row.TotalOverAllGross) || 0
     const hits = Number(row.TotalOverAllHits) || 0
     const teller = formatValue(row.fullName ?? row.username)
     const tellerKey = formatValue(row.username ?? row.fullName ?? teller)
-    const current = grouped.get(supervisor) ?? { supervisor, agents: new Map(), totalGross: 0, totalHits: 0 }
+    const current = grouped.get(supervisor) ?? {
+      supervisor,
+      municipality,
+      agents: new Map(),
+      totalGross: 0,
+      totalHits: 0,
+    }
     const drawTime = formatDrawTime(row.drawTime)
-    const agent = current.agents.get(tellerKey) ?? { key: tellerKey, teller, draws: new Map(), totalGross: 0, totalHits: 0 }
+    const agent = current.agents.get(tellerKey) ?? {
+      key: tellerKey,
+      teller,
+      municipality,
+      draws: new Map(),
+      totalGross: 0,
+      totalHits: 0,
+    }
     const draw = agent.draws.get(drawTime) ?? { gross: 0, hits: 0 }
     draw.gross += gross
     draw.hits += hits
@@ -379,6 +427,7 @@ function getSupervisorReports(rows, supervisorRows = [], commissionSettings = nu
 
       return {
         ...agent,
+        municipality: group.municipality || 'Other / HQ',
         commissionRate: rateInfo.rate,
         isCommissionOverride: rateInfo.isOverride,
         supervisorDefaultRate: rateInfo.supervisorDefault,
@@ -393,6 +442,7 @@ function getSupervisorReports(rows, supervisorRows = [], commissionSettings = nu
 
     return {
       ...group,
+      municipality: group.municipality || 'Other / HQ',
       agents,
       totalNet,
       totalSalary: groupSalary,
@@ -433,7 +483,7 @@ function getSupervisorThirdDrawCarryover(group) {
   return group.agents.reduce((total, agent) => total + getThirdDrawCarryover(agent), 0)
 }
 
-function DrawGrossSummary({ supervisorReports }) {
+function DrawGrossSummary({ supervisorReports, selectedMunicipality = ALL_MUNICIPALITIES }) {
   const totals = drawGroups.map((group) => {
     let gross = 0
     let hits = 0
@@ -463,7 +513,11 @@ function DrawGrossSummary({ supervisorReports }) {
       <div className="draw-summary-heading">
         <div>
           <strong>Total gross &amp; hits per draw</strong>
-          <span>Consolidated from frontend supervisor rows</span>
+          <span>
+            {selectedMunicipality && selectedMunicipality !== ALL_MUNICIPALITIES
+              ? `Scoped to ${selectedMunicipality} Municipality`
+              : 'Consolidated from frontend supervisor rows'}
+          </span>
         </div>
         <div className="draw-summary-heading-totals">
           <div className="summary-total-chip gross-chip">
@@ -684,19 +738,15 @@ function calculateMetricsTotals(list = []) {
   )
 }
 
-// Paper budgets at 96dpi (px), for auto-fit calculations
 const PAPER_BUDGETS = {
-  longBond: { w: 756, h: 1188 }, // 8.5in × 13in @ 96dpi minus 4mm margins
-  a4:       { w: 756, h: 1026 }, // 8.27in × 11.69in @ 96dpi minus 4mm margins
+  longBond: { w: 756, h: 1188 },
+  a4:       { w: 756, h: 1026 },
 }
 
 function calculateAutoFitScale(agentCount, paperType = 'a4') {
-  // Fallback estimate used only before DOM measurement is available
   const budget = PAPER_BUDGETS[paperType] || PAPER_BUDGETS.a4
-  // Fixed chrome: header ~80px, meta ~22px, th ~24px, 2 section headers ~40px,
-  // 2 subtotal rows ~36px, grand total ~28px, spacers ~16px, draw deficits ~200px, sigs ~80px, footer ~20px
   const fixedPx = 546
-  const rowPx = 17 // compact row height
+  const rowPx = 17
   const estimatedHeight = fixedPx + agentCount * rowPx
   if (estimatedHeight <= budget.h) return 100
   const exact = Math.floor((budget.h / estimatedHeight) * 100)
@@ -724,7 +774,6 @@ function SupervisorStatementTable({
     netSales: positiveTotals.netSales + negativeTotals.netSales,
   }
 
-  // ─── Real DOM auto-fit ────────────────────────────────────────────────────
   const sheetRef = useRef(null)
   const wrapRef  = useRef(null)
   const [computedScale, setComputedScale] = useState(fitOnePage ? (fontScale || 100) : 100)
@@ -744,14 +793,12 @@ function SupervisorStatementTable({
       const contentW = sheetRef.current?.scrollWidth  || 0
       const wrapW    = wrapRef.current?.clientWidth   || 800
 
-      // Determine available print height from @page or use A4 as default
-      // A4 = 297mm - 8mm margins ≈ 1026px @ 96dpi
       const availH = PAPER_BUDGETS.a4.h
       const availW = wrapW
 
       const scaleH = availH / contentH
       const scaleW = availW / contentW
-      const scale  = Math.min(scaleH, scaleW, 1) // never upscale past 100%
+      const scale  = Math.min(scaleH, scaleW, 1)
 
       const pct = Math.max(55, Math.floor(scale * 100))
       setComputedScale(pct)
@@ -765,18 +812,14 @@ function SupervisorStatementTable({
       cancelAnimationFrame(raf)
       resizeObserver.disconnect()
     }
-  // Re-run when agent list changes or group changes
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fitOnePage, group?.agents?.length, group?.supervisor])
 
-  // Apply computed scale via CSS transform (more reliable than zoom across browsers/print)
   useLayoutEffect(() => {
     if (!fitOnePage || !sheetRef.current) return
     if (computedScale < 100) {
       const s = (computedScale / 100).toFixed(4)
       sheetRef.current.style.transformOrigin = 'top left'
       sheetRef.current.style.transform = `scale(${s})`
-      // Expand wrapper to compensate so siblings aren't pushed
       sheetRef.current.style.width = `${(100 / (computedScale / 100)).toFixed(2)}%`
     } else {
       sheetRef.current.style.transform = ''
@@ -792,9 +835,8 @@ function SupervisorStatementTable({
       className={`statement-sheet ${isModal ? 'statement-sheet-modal' : 'statement-sheet-inline'} ${fitOnePage ? 'a4-single-page-fit' : ''}`}
       style={{ display: 'block', boxSizing: 'border-box' }}
     >
-      {/* ── FULL-WIDTH HEADER ─────────────────────────────────────── */}
       <div className="statement-header-block">
-        <h3 className="statement-company-title">IMPERIAL GAMING OPC</h3>
+        <h3 className="statement-company-title">5A ROYAL GAMING OPC</h3>
         <h4 className="statement-report-title">CONDENSED SUPERVISOR AGENT REMITTANCE SUMMARY</h4>
         <p className="statement-report-subtitle">(Unaudited — Official Draw Performance &amp; Accounting Ledger)</p>
         <div className="statement-meta-row">
@@ -808,10 +850,8 @@ function SupervisorStatementTable({
         </div>
       </div>
 
-      {/* ── 2-COLUMN BODY: LEFT = Balance Table | RIGHT = Draw Deficits ── */}
       <div className="statement-two-col-body">
 
-        {/* LEFT COLUMN – Official Balance Table */}
         <div className="statement-left-col">
           <div className="statement-col-label">OFFICIAL REMITTANCE STATEMENT</div>
           <div className="statement-table-container">
@@ -1014,7 +1054,6 @@ function SupervisorStatementTable({
           </div>
         </div>
 
-        {/* RIGHT COLUMN – Draw Deficit Breakdown */}
         <div className="statement-right-col">
           <div className="statement-col-label">DRAW DEFICIT BREAKDOWN</div>
           <DrawDeficitsExcelStatement
@@ -1025,9 +1064,8 @@ function SupervisorStatementTable({
           />
         </div>
 
-      </div>{/* end .statement-two-col-body */}
+      </div>
 
-      {/* ── FULL-WIDTH FOOTER ─────────────────────────────────────── */}
       <div className="statement-signatures-section">
         <div className="statement-sig-column">
           <div className="statement-sig-line" />
@@ -1043,7 +1081,7 @@ function SupervisorStatementTable({
         </div>
       </div>
       <div className="statement-print-footer-tag">
-        IMPERIAL GAMING OPC • OFFICIAL REMITTANCE STATEMENT &amp; DRAW DEFICIT AUDIT • {formatDisplayDate(selectedDate)}
+        5A ROYAL GAMING OPC • OFFICIAL REMITTANCE STATEMENT &amp; DRAW DEFICIT AUDIT • {formatDisplayDate(selectedDate)}
       </div>
     </div>
     </div>
@@ -1211,6 +1249,7 @@ function SupervisorStatementModal({
 function OverviewDashboard({
   overallDraws = [],
   supervisorReports = [],
+  selectedMunicipality = ALL_MUNICIPALITIES,
   selectedDate,
   branchName,
   loading,
@@ -1229,7 +1268,9 @@ function OverviewDashboard({
   const [searchQuery, setSearchQuery] = useState('')
   const [showRawFeed, setShowRawFeed] = useState(false)
 
-  const hasOverallData = overallDraws.length > 0
+  const isMunicipalityFiltered = Boolean(selectedMunicipality && selectedMunicipality !== ALL_MUNICIPALITIES)
+  const hasOverallData = !isMunicipalityFiltered && overallDraws.length > 0
+
   const totalGross = hasOverallData
     ? overallDraws.reduce((sum, d) => sum + (Number(d.TotalOveAllGross ?? d.TotalOverAllGross) || 0), 0)
     : supervisorReports.reduce((sum, s) => sum + s.totalGross, 0)
@@ -1315,12 +1356,17 @@ function OverviewDashboard({
             Consolidated Operations Overview
           </h2>
           <p>
-            Executive Daily Sales, Winning Results, Payout Audits &amp; Remittance Summary for {formatDisplayDate(selectedDate)}
+            {isMunicipalityFiltered && (!currentUser?.assignedMunicipality || currentUser.assignedMunicipality === ALL_MUNICIPALITIES)
+              ? `Municipality Focus: ${selectedMunicipality} • Sales, Winning Results, Payout Audits & Remittance for ${formatDisplayDate(selectedDate)}`
+              : `Executive Daily Sales, Winning Results, Payout Audits & Remittance Summary for ${formatDisplayDate(selectedDate)}`}
           </p>
         </div>
         <div className="overview-hero-badges">
           <span className="hero-pill-badge live-dot-badge">{branchName} Branch</span>
-          <span className="hero-pill-badge">{overallDraws.length > 0 ? `${overallDraws.length} Draws Completed` : 'Live Draws'}</span>
+          {isMunicipalityFiltered && (!currentUser?.assignedMunicipality || currentUser.assignedMunicipality === ALL_MUNICIPALITIES) && (
+            <span className="hero-pill-badge muni-active-badge"><Icon name="municipality" size={13} /> {selectedMunicipality}</span>
+          )}
+          <span className="hero-pill-badge">{overallDraws.length > 0 ? `${overallDraws.length} Draws Tracked` : 'Live Draws'}</span>
           <span className="hero-pill-badge">{supervisorReports.length} Supervisors</span>
           <span className="hero-pill-badge">{totalTellers} Active Tellers</span>
         </div>
@@ -1426,9 +1472,23 @@ function OverviewDashboard({
           <div className="overview-draws-grid">
             {overallDraws.map((row, idx) => {
               const meta = getDrawScheduleMeta(row.drawTime)
-              const gross = Number(row.TotalOveAllGross ?? row.TotalOverAllGross) || 0
-              const hits = Number(row.TotalOveAllHits ?? row.TotalOverAllHits) || 0
-              const kabig = Number(row.TotalOveAllKabig ?? row.TotalOverAllKabig) || (gross - hits)
+              const muniGross = isMunicipalityFiltered
+                ? supervisorReports.reduce((sum, s) => sum + s.agents.reduce((aSum, a) => {
+                    const d = a.draws.get(meta.time)
+                    return aSum + (d?.gross || 0)
+                  }, 0), 0)
+                : 0
+              const muniHits = isMunicipalityFiltered
+                ? supervisorReports.reduce((sum, s) => sum + s.agents.reduce((aSum, a) => {
+                    const d = a.draws.get(meta.time)
+                    return aSum + (d?.hits || 0)
+                  }, 0), 0)
+                : 0
+              const muniKabig = muniGross - muniHits
+
+              const gross = isMunicipalityFiltered ? muniGross : (Number(row.TotalOveAllGross ?? row.TotalOverAllGross) || 0)
+              const hits = isMunicipalityFiltered ? muniHits : (Number(row.TotalOveAllHits ?? row.TotalOverAllHits) || 0)
+              const kabig = isMunicipalityFiltered ? muniKabig : (Number(row.TotalOveAllKabig ?? row.TotalOverAllKabig) || (gross - hits))
               const ratio = gross > 0 ? (hits / gross) * 100 : 0
               const result3D = row.s3_result || row.l3_result || null
               const s3Digits = result3D ? String(result3D).split('') : []
@@ -1442,7 +1502,6 @@ function OverviewDashboard({
 
               return (
                 <div key={row.id || idx} className={`draw-result-card ${meta.isLocal ? 'card-local' : 'card-pcso'}`}>
-                  {/* Card Header */}
                   <div className="draw-card-top-bar">
                     <div className="draw-card-time-wrap">
                       <span className="draw-clock-icon"><Icon name="clock" size={13} /></span>
@@ -1454,7 +1513,6 @@ function OverviewDashboard({
                     </span>
                   </div>
 
-                  {/* Winning Results Showcase */}
                   <div className="draw-card-results-showcase">
                     <div className="draw-hero-winner-box">
                       <div className="winner-label-row">
@@ -1485,7 +1543,6 @@ function OverviewDashboard({
                       </div>
                     </div>
 
-                    {/* Dedicated Side Games Tray for PCSO (2D & 4D) - clean, non-cramped */}
                     {hasSideGames ? (
                       <div className="draw-side-games-tray">
                         {row.l2_result && (
@@ -1514,7 +1571,6 @@ function OverviewDashboard({
                     )}
                   </div>
 
-                  {/* Financial & Audit Metrics */}
                   <div className="draw-card-financial-strip">
                     <div className="draw-stats-dual-row">
                       <div className="stat-pod">
@@ -1703,7 +1759,7 @@ function OverviewDashboard({
                     NetRemittance: s.netRemittance,
                     Status: s.netRemittance >= 0 ? 'Positive' : 'Deficit',
                   }))
-                  downloadCsv(`ImperialGamingOPC_Supervisor_Leaderboard_${selectedDate}.csv`, exportData)
+                  downloadCsv(`5ARoyalGamingOPC_Supervisor_Leaderboard_${selectedDate}.csv`, exportData)
                 }}
                 title={canExport ? "Export Supervisor Leaderboard to CSV" : "Export data permission ('export_data') is locked for your account in the Role Matrix"}
               >
@@ -1972,15 +2028,47 @@ function App() {
   const [reportViewMode, setReportViewMode] = useState('matrix')
   const [statementModalGroup, setStatementModalGroup] = useState(null)
   const [isDeficitModalOpen, setIsDeficitModalOpen] = useState(false)
+  const [selectedMunicipality, setSelectedMunicipality] = useState(() => {
+    try {
+      const saved = sessionStorage.getItem('luckybet_user')
+      if (saved) {
+        const parsed = JSON.parse(saved)
+        if (parsed?.assignedMunicipality && parsed.assignedMunicipality !== ALL_MUNICIPALITIES) {
+          return parsed.assignedMunicipality
+        }
+        const fromBranch = resolveMunicipalityFromBranch(parsed?.branch)
+        if (fromBranch && fromBranch !== ALL_MUNICIPALITIES) {
+          return fromBranch
+        }
+      }
+    } catch {}
+    return ALL_MUNICIPALITIES
+  })
   const [currentUser, setCurrentUser] = useState(() => {
     try {
-      const saved = localStorage.getItem('luckybet_user') || sessionStorage.getItem('luckybet_user')
+      const saved = sessionStorage.getItem('luckybet_user')
       if (!saved) return null
       const parsed = JSON.parse(saved)
       if (parsed) {
         if (parsed.branch) parsed.branch = parsed.branch.replace(/Mandaue/gi, 'LDN')
         if (parsed.username) parsed.username = parsed.username.replace(/^mandaue\.staff$/i, 'ldn.staff').replace(/^teller\.mandaue$/i, 'teller.ldn')
-        localStorage.setItem('luckybet_user', JSON.stringify(parsed))
+        const rbacUsers = getRbacUsers()
+        const match = rbacUsers.find((u) => u.username?.toLowerCase() === parsed.username?.toLowerCase())
+        const defUser = DEFAULT_USERS.find((d) => d.username?.toLowerCase() === parsed.username?.toLowerCase())
+
+        let resolvedMuni = parsed.assignedMunicipality || match?.assignedMunicipality || defUser?.assignedMunicipality
+        if (!resolvedMuni || resolvedMuni === ALL_MUNICIPALITIES) {
+          if (defUser && defUser.assignedMunicipality && defUser.assignedMunicipality !== ALL_MUNICIPALITIES) {
+            resolvedMuni = defUser.assignedMunicipality
+          } else {
+            const fromBranch = resolveMunicipalityFromBranch(parsed.branch || match?.branch)
+            if (fromBranch && fromBranch !== ALL_MUNICIPALITIES) {
+              resolvedMuni = fromBranch
+            }
+          }
+        }
+        parsed.assignedMunicipality = resolvedMuni || ALL_MUNICIPALITIES
+        sessionStorage.setItem('luckybet_user', JSON.stringify(parsed))
       }
       return parsed
     } catch {
@@ -1993,20 +2081,21 @@ function App() {
 
   useEffect(() => {
     try {
-      ['luckybet_user', 'luckybet_rbac_users'].forEach((key) => {
-        const val = localStorage.getItem(key)
-        if (val && /Mandaue/i.test(val)) {
-          const cleaned = val.replace(/Mandaue/gi, 'LDN')
-            .replace(/mandaue\.staff/gi, 'ldn.staff')
-            .replace(/teller\.mandaue/gi, 'teller.ldn')
-            .replace(/luckybetplay\.ph/gi, 'imperialgamingopc.ph')
-            .replace(/glowingfortune\.ph/gi, 'imperialgamingopc.ph')
-          localStorage.setItem(key, cleaned)
-        }
+      [
+        'luckybet_user',
+        'luckybet_token',
+        'luckybet_rbac_users',
+        'luckybet_rbac_roles',
+        'luckybet_rbac_user_perms',
+        'luckybet_rbac_deleted_users',
+        'luckybet_rbac_audit_logs',
+        'luckybet_commission_settings',
+        'luckybet_theme',
+        'luckybet_custom_print_browser_settings',
+      ].forEach((key) => {
+        localStorage.removeItem(key)
       })
-    } catch (e) {
-      console.warn('Legacy localStorage migration notice:', e)
-    }
+    } catch {}
 
     const handleCommissionChange = (e) => {
       if (e?.detail) setCommissionSettings(e.detail)
@@ -2018,7 +2107,7 @@ function App() {
 
   const [isDarkMode, setIsDarkMode] = useState(() => {
     try {
-      const saved = localStorage.getItem('luckybet_theme')
+      const saved = sessionStorage.getItem('luckybet_theme')
       if (saved) return saved === 'dark'
       return window.matchMedia('(prefers-color-scheme: dark)').matches
     } catch {
@@ -2030,13 +2119,31 @@ function App() {
     const themeVal = isDarkMode ? 'dark' : 'light'
     document.documentElement.setAttribute('data-theme', themeVal)
     document.body.setAttribute('data-theme', themeVal)
-    localStorage.setItem('luckybet_theme', themeVal)
+    try {
+      sessionStorage.setItem('luckybet_theme', themeVal)
+    } catch {}
   }, [isDarkMode])
 
   const handleSwitchUser = (targetUser) => {
     const rDef = rbacRoles[targetUser.role] || DEFAULT_ROLES[targetUser.role] || DEFAULT_ROLES.staff
     const perms = getUserEffectivePermissions(targetUser, rbacRoles)
     const isTargetAdmin = targetUser.role === 'admin'
+    const defUser = DEFAULT_USERS.find((d) => d.username?.toLowerCase() === targetUser.username?.toLowerCase())
+    let resolvedMuni = targetUser.assignedMunicipality
+    if (!resolvedMuni || resolvedMuni === ALL_MUNICIPALITIES) {
+      if (defUser && defUser.assignedMunicipality && defUser.assignedMunicipality !== ALL_MUNICIPALITIES) {
+        resolvedMuni = defUser.assignedMunicipality
+      } else {
+        const fromBranch = resolveMunicipalityFromBranch(targetUser.branch)
+        if (fromBranch && fromBranch !== ALL_MUNICIPALITIES) {
+          resolvedMuni = fromBranch
+        }
+      }
+    }
+    if (!resolvedMuni) {
+      resolvedMuni = ALL_MUNICIPALITIES
+    }
+
     const newUser = {
       username: targetUser.username,
       name: targetUser.name,
@@ -2044,6 +2151,7 @@ function App() {
       roleLabel: rDef.label,
       roleBadge: rDef.badge,
       branch: targetUser.branch,
+      assignedMunicipality: resolvedMuni,
       avatar: targetUser.avatar || targetUser.name.substring(0, 2).toUpperCase(),
       token: 'rbac-token-' + targetUser.id,
       loginTime: new Date().toISOString(),
@@ -2051,7 +2159,8 @@ function App() {
       simulatedFromAdmin: !isTargetAdmin,
     }
     setCurrentUser(newUser)
-    localStorage.setItem('luckybet_user', JSON.stringify(newUser))
+    try { sessionStorage.setItem('luckybet_user', JSON.stringify(newUser)) } catch {}
+    setSelectedMunicipality(resolvedMuni)
   }
 
   const handleReturnToAdmin = () => {
@@ -2065,6 +2174,7 @@ function App() {
       roleLabel: rDef.label,
       roleBadge: rDef.badge,
       branch: adminUser.branch,
+      assignedMunicipality: adminUser.assignedMunicipality || ALL_MUNICIPALITIES,
       avatar: adminUser.avatar || 'JL',
       token: 'rbac-token-' + adminUser.id,
       loginTime: new Date().toISOString(),
@@ -2072,29 +2182,37 @@ function App() {
       simulatedFromAdmin: false,
     }
     setCurrentUser(restored)
-    localStorage.setItem('luckybet_user', JSON.stringify(restored))
+    try { sessionStorage.setItem('luckybet_user', JSON.stringify(restored)) } catch {}
+    setSelectedMunicipality(ALL_MUNICIPALITIES)
   }
 
-  // Listen for real-time RBAC updates (both role-tier toggles and account-specific custom overrides)
   useEffect(() => {
     const handleRbacChange = () => {
       setRbacRoles(getRbacRoles())
       setRbacRev((r) => r + 1)
+      setCurrentUser((prev) => {
+        if (!prev) return prev
+        const rbacUsers = getRbacUsers()
+        const match = rbacUsers.find((u) => u.username?.toLowerCase() === prev.username?.toLowerCase())
+        if (match && match.assignedMunicipality && match.assignedMunicipality !== prev.assignedMunicipality) {
+          const updated = { ...prev, assignedMunicipality: match.assignedMunicipality }
+          try { sessionStorage.setItem('luckybet_user', JSON.stringify(updated)) } catch {}
+          return updated
+        }
+        return prev
+      })
     }
     window.addEventListener('luckybet_rbac_change', handleRbacChange)
 
-    // 1. Initial sync of permissions and commission settings from Supabase Cloud
     if (isSupabaseConfigured) {
       syncMatrixPermissionsFromSupabase().catch(() => {})
       syncCommissionSettingsFromSupabase().catch(() => {})
     }
 
-    // 2. Real-time subscription to cloud matrix toggles (Supabase Realtime Channel & Postgres changes)
     const unsubRealtime = subscribeToMatrixRealtime(() => {
       syncMatrixPermissionsFromSupabase().catch(() => {})
     })
 
-    // 3. Sync whenever the tab/window gains focus or becomes visible
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible' && isSupabaseConfigured) {
         syncMatrixPermissionsFromSupabase().catch(() => {})
@@ -2103,7 +2221,6 @@ function App() {
     }
     document.addEventListener('visibilitychange', handleVisibilityChange)
 
-    // 4. Periodic polling safety check (every 30 seconds)
     const syncInterval = setInterval(() => {
       if (isSupabaseConfigured) {
         syncMatrixPermissionsFromSupabase().catch(() => {})
@@ -2119,7 +2236,6 @@ function App() {
     }
   }, [])
 
-  // Calculate dynamic effective capabilities for currentUser depending on account and matrix toggles
   const userPermissions = useMemo(() => {
     if (!currentUser) return []
     return getUserEffectivePermissions(currentUser, rbacRoles)
@@ -2132,7 +2248,6 @@ function App() {
     [currentUser, rbacRoles, rbacRev]
   )
 
-  // Automatically snap to first permitted tab if activeView is not permitted
   useEffect(() => {
     if (!currentUser) return
     const isAllowed = (view) => {
@@ -2155,9 +2270,12 @@ function App() {
 
   const handleLogout = () => {
     signOutFromSupabase().catch(() => {})
-    localStorage.removeItem('luckybet_user')
-    localStorage.removeItem('luckybet_token')
+    try {
+      localStorage.removeItem('luckybet_user')
+      localStorage.removeItem('luckybet_token')
+    } catch {}
     sessionStorage.removeItem('luckybet_user')
+    sessionStorage.removeItem('luckybet_token')
     setCurrentUser(null)
   }
 
@@ -2272,9 +2390,72 @@ function App() {
   const rawBranchName = (!import.meta.env.VITE_BRANCH_NAME && rows.find((r) => r?.location || r?.branch || r?.branchName)?.location) || configuredBranch
   const branchName = (rawBranchName || 'LDN').replace(/Mandaue/gi, 'LDN')
 
-  const columns = getColumns(rows)
-  const drawRows = rows.filter((row) => row && row.drawTime !== undefined)
-  const supervisorReports = getSupervisorReports(drawRows, supervisorRows, commissionSettings)
+  const muniLookup = useMemo(() => buildSupervisorMunicipalityLookup(supervisorRows), [supervisorRows])
+
+  const userAssignedMuni = useMemo(() => {
+    if (!currentUser) return ALL_MUNICIPALITIES
+    let muni = currentUser.assignedMunicipality
+    if (!muni || muni === ALL_MUNICIPALITIES) {
+      const defUser = DEFAULT_USERS.find((d) => d.username?.toLowerCase() === currentUser.username?.toLowerCase())
+      if (defUser && defUser.assignedMunicipality && defUser.assignedMunicipality !== ALL_MUNICIPALITIES) {
+        muni = defUser.assignedMunicipality
+      } else {
+        const fromBranch = resolveMunicipalityFromBranch(currentUser.branch)
+        if (fromBranch && fromBranch !== ALL_MUNICIPALITIES) {
+          muni = fromBranch
+        }
+      }
+    }
+    return muni || ALL_MUNICIPALITIES
+  }, [currentUser])
+
+  const isMuniAccount = userAssignedMuni !== ALL_MUNICIPALITIES
+  const canSwitchMunicipality = !isMuniAccount && can('switch_municipality')
+  const isMuniRestricted = !canSwitchMunicipality
+
+  useEffect(() => {
+    if (isMuniRestricted) {
+      setSelectedMunicipality(userAssignedMuni)
+    }
+  }, [isMuniRestricted, userAssignedMuni, currentUser?.username])
+
+  const effectiveMunicipality = isMuniRestricted ? userAssignedMuni : selectedMunicipality
+
+  const filteredRows = useMemo(() => {
+    if (effectiveMunicipality === ALL_MUNICIPALITIES) return rows
+    return rows.filter((r) => {
+      const muni = getRowMunicipality(r, muniLookup)
+      return muni === effectiveMunicipality
+    })
+  }, [rows, effectiveMunicipality, muniLookup])
+
+  const filteredDrawRows = useMemo(() => {
+    return filteredRows.filter((row) => row && row.drawTime !== undefined)
+  }, [filteredRows])
+
+  const columns = useMemo(() => getColumns(filteredRows), [filteredRows])
+
+  const allSupervisorReports = useMemo(() => {
+    const rawDrawRows = rows.filter((row) => row && row.drawTime !== undefined)
+    return getSupervisorReports(rawDrawRows, supervisorRows, commissionSettings, muniLookup)
+  }, [rows, supervisorRows, commissionSettings, muniLookup])
+
+  const availableMunicipalities = useMemo(() => {
+    const set = new Set(allSupervisorReports.map((s) => s.municipality).filter(Boolean))
+    const list = Array.from(set).sort()
+    return [ALL_MUNICIPALITIES, ...list]
+  }, [allSupervisorReports])
+
+  const supervisorReports = useMemo(() => {
+    if (effectiveMunicipality === ALL_MUNICIPALITIES) return allSupervisorReports
+    return getSupervisorReports(filteredDrawRows, supervisorRows, commissionSettings, muniLookup)
+  }, [effectiveMunicipality, allSupervisorReports, filteredDrawRows, supervisorRows, commissionSettings, muniLookup])
+
+  useEffect(() => {
+    if (selectedSupervisor !== 'all' && !supervisorReports.some((g) => g.supervisor === selectedSupervisor)) {
+      setSelectedSupervisor('all')
+    }
+  }, [effectiveMunicipality, supervisorReports, selectedSupervisor])
 
   const deficitTellersCount = useMemo(() => {
     let count = 0
@@ -2295,8 +2476,8 @@ function App() {
     ? supervisorReports
     : supervisorReports.filter((group) => group.supervisor === activeSupervisor)
 
-  const hasAgentFields = drawRows.some((row) => getFirstField(row, agentFieldNames) !== null)
-  const hasSupervisorFields = drawRows.some((row) => getFirstField(row, supervisorFieldNames) !== null)
+  const hasAgentFields = filteredDrawRows.some((row) => getFirstField(row, agentFieldNames) !== null)
+  const hasSupervisorFields = filteredDrawRows.some((row) => getFirstField(row, supervisorFieldNames) !== null)
   const sourceApiUrl = activeView === 'reports' ? tellerApiUrl : (overallApiUrl || tellerApiUrl)
   const endpointLabel = sourceApiUrl ? new URL(sourceApiUrl).pathname : 'API endpoint not configured'
 
@@ -2310,11 +2491,14 @@ function App() {
     <div className="app-shell">
       <aside className="sidebar">
         <div className="brand">
-          <img className="brand-logo" src="/imperial-gaming-logo.png" alt="Imperial Gaming OPC" />
-          <span>
+          <div className="brand-logo-highlight-wrap" title="5A Royal Gaming OPC">
+            <div className="brand-logo-glow" aria-hidden="true" />
+            <img className="brand-logo" src="/5a-royal-gaming-logo.png" alt="5A Royal Gaming OPC" />
+          </div>
+          <div className="brand-title-wrap">
             <strong>STL Reports</strong>
             <small className="brand-branch-badge">{branchName} Branch</small>
-          </span>
+          </div>
         </div>
         <nav className="sidebar-nav" aria-label="Main navigation">
           {(can('view_overview') || can('view_reports') || can('manage_commissions')) && (
@@ -2407,6 +2591,16 @@ function App() {
             </h1>
           </div>
           <div className="topbar-actions">
+            {!isMuniAccount && (
+              <div
+                className={`topbar-muni-pill ${isMuniRestricted ? 'locked' : ''}`}
+                title={isMuniRestricted ? `Account locked strictly to ${userAssignedMuni}` : `Active municipality scope: ${effectiveMunicipality}`}
+              >
+                <span className="topbar-muni-icon"><Icon name="municipality" size={13} /></span>
+                <span className="topbar-muni-text">{effectiveMunicipality}</span>
+                {isMuniRestricted && <span className="topbar-muni-lock" title="Municipality scope locked by RBAC">🔒</span>}
+              </div>
+            )}
             <span className="date-label">{lastUpdated ? `Updated ${lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : 'Connecting...'}</span>
             <button className="refresh-button" type="button" onClick={() => loadReport(selectedDate)} disabled={loading}><Icon name="refresh" size={15} /> {loading ? 'Loading' : 'Refresh'}</button>
             <button
@@ -2445,9 +2639,13 @@ function App() {
                 <div>
                   <h2>Good day, {currentUser?.name?.split(' ')[0] || 'Accountant'}</h2>
                   <p>
-                    {isToday
-                      ? 'Here is the latest live consolidated view for today.'
-                      : `Viewing previous report for ${formatDisplayDate(selectedDate)}.`}
+                    {effectiveMunicipality !== ALL_MUNICIPALITIES && !isMuniAccount ? (
+                      <>Viewing live consolidated report strictly scoped to <strong>{effectiveMunicipality} Municipality</strong>.</>
+                    ) : isToday ? (
+                      'Here is the latest live consolidated view for today.'
+                    ) : (
+                      `Viewing previous report for ${formatDisplayDate(selectedDate)}.`
+                    )}
                   </p>
                 </div>
                 {isToday ? (
@@ -2514,6 +2712,40 @@ function App() {
                       <Icon name="chevronRight" size={15} />
                     </button>
                   </div>
+
+                  {canSwitchMunicipality && (
+                    <div className="muni-scope-select-wrap">
+                      <span className="muni-scope-icon"><Icon name="municipality" size={13} /></span>
+                      <label htmlFor="muni-filter-select" className="muni-scope-label">Municipality:</label>
+                      <select
+                        id="muni-filter-select"
+                        className="muni-scope-select"
+                        value={effectiveMunicipality}
+                        onChange={(e) => setSelectedMunicipality(e.target.value)}
+                        aria-label="Filter by municipality"
+                      >
+                        <option value={ALL_MUNICIPALITIES}>All Municipalities ({allSupervisorReports.length} spvrs)</option>
+                        {availableMunicipalities.filter((m) => m !== ALL_MUNICIPALITIES).map((muni) => {
+                          const muniSpvrCount = allSupervisorReports.filter((s) => s.municipality === muni).length
+                          return (
+                            <option key={muni} value={muni}>
+                              {muni} ({muniSpvrCount} {muniSpvrCount === 1 ? 'spvr' : 'spvrs'})
+                            </option>
+                          )
+                        })}
+                      </select>
+                      {effectiveMunicipality !== ALL_MUNICIPALITIES && (
+                        <button
+                          type="button"
+                          className="muni-scope-reset-btn"
+                          onClick={() => setSelectedMunicipality(ALL_MUNICIPALITIES)}
+                          title="Reset to All Municipalities"
+                        >
+                          ✕ All
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 <div className="date-bar-right">
@@ -2551,20 +2783,21 @@ function App() {
               <OverviewDashboard
                 overallDraws={overallDraws}
                 supervisorReports={supervisorReports}
+                selectedMunicipality={effectiveMunicipality}
                 selectedDate={selectedDate}
                 branchName={branchName}
                 loading={loading}
                 error={error}
                 onViewStatement={(group) => setStatementModalGroup(group)}
                 onInspectDeficits={() => setIsDeficitModalOpen(true)}
-                rawRows={rows}
-                rawColumns={columns}
                 endpointLabel={endpointLabel}
                 onRefresh={() => loadReport(selectedDate)}
                 canPrint={can('print_statements')}
                 canExport={can('export_data')}
                 canRawFeed={can('view_raw_feed')}
                 currentUser={currentUser}
+                rawRows={filteredRows}
+                rawColumns={columns}
               />
             )
           )}
@@ -2580,7 +2813,12 @@ function App() {
               />
             ) : (
               <>
-                {!loading && !error && supervisorReports.length > 0 && <DrawGrossSummary supervisorReports={supervisorReports} />}
+                {!loading && !error && supervisorReports.length > 0 && (
+                  <DrawGrossSummary
+                    supervisorReports={supervisorReports}
+                    selectedMunicipality={effectiveMunicipality}
+                  />
+                )}
 
                 {!loading && !error && <section className="report-panel gross-panel supervisor-report">
                   <div className="panel-heading supervisor-panel-heading">
@@ -2697,7 +2935,8 @@ function App() {
                               const target = activeSupervisor !== 'all'
                                 ? (supervisorReports.find((g) => g.supervisor === activeSupervisor) ?? supervisorReports[0])
                                 : {
-                                    supervisor: 'ALL SUPERVISORS (CONSOLIDATED)',
+                                    supervisor: effectiveMunicipality !== ALL_MUNICIPALITIES ? `${effectiveMunicipality.toUpperCase()} SUPERVISORS (CONSOLIDATED)` : 'ALL SUPERVISORS (CONSOLIDATED)',
+                                    municipality: effectiveMunicipality,
                                     agents: supervisorReports.flatMap((s) => s.agents.map((a) => ({
                                       ...a,
                                       teller: `${a.teller} (${s.supervisor})`,
@@ -2715,7 +2954,7 @@ function App() {
                     </div>
                   </div>
                   {!hasAgentFields || !hasSupervisorFields ? <div className="breakdown-note">The current API response does not include {hasAgentFields ? 'supervisor' : hasSupervisorFields ? 'agent' : 'agent or supervisor'} fields, so the available gross is grouped as unspecified. The endpoint must return those fields for an attributed breakdown.</div> : null}
-                  {drawRows.length === 0 ? <div className="state-message">No agent report records were returned for {formatDisplayDate(selectedDate)}.</div> : <div className="supervisor-groups">{displayedSupervisors.map((group) => <section className="supervisor-group" key={group.supervisor}>
+                  {filteredDrawRows.length === 0 ? <div className="state-message">No agent report records were returned for {effectiveMunicipality !== ALL_MUNICIPALITIES ? effectiveMunicipality : branchName} on {formatDisplayDate(selectedDate)}.</div> : <div className="supervisor-groups">{displayedSupervisors.map((group) => <section className="supervisor-group" key={group.supervisor}>
                     <div className="supervisor-heading">
                       <div className="supervisor-heading-info">
                         <strong>{group.supervisor}</strong>
@@ -2786,7 +3025,7 @@ function App() {
                     simulatedFromAdmin: !isTargetAdmin,
                   }
                   setCurrentUser(updatedUser)
-                  localStorage.setItem('luckybet_user', JSON.stringify(updatedUser))
+                  try { sessionStorage.setItem('luckybet_user', JSON.stringify(updatedUser)) } catch {}
                 }}
                 branchName={branchName}
                 initialTab={activeView === 'activity' ? 'logs' : 'users'}
@@ -2817,6 +3056,7 @@ function App() {
           drawGroups={drawGroups}
           selectedDate={selectedDate}
           branchName={branchName}
+          selectedMunicipality={effectiveMunicipality}
           canPrint={can('print_statements')}
         />
       )}

@@ -23,7 +23,9 @@ import {
   getPermissionMeta,
   areFeatureParentTabsDisabled,
   getAffectedFeaturesWhenTabDisabled,
+  setInternalAuditLogs,
 } from './rbac'
+import { MUNICIPALITIES, ALL_MUNICIPALITIES } from './municipalities'
 import {
   isSupabaseConfigured,
   getSupabaseRbacUsers,
@@ -32,6 +34,7 @@ import {
   syncMatrixPermissionsFromSupabase,
   saveSupabaseMatrixConfig,
   subscribeToMatrixRealtime,
+  getSupabaseAuditLogs,
 } from './supabase'
 
 const supabaseSqlUrl = (() => {
@@ -55,12 +58,15 @@ CREATE TABLE IF NOT EXISTS public.rbac_users (
   role TEXT NOT NULL DEFAULT 'staff',
   role_label TEXT,
   branch TEXT,
+  assigned_municipality TEXT DEFAULT 'All Municipalities',
   status TEXT NOT NULL DEFAULT 'active',
   avatar TEXT,
   email TEXT,
   last_login TIMESTAMP WITH TIME ZONE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+ALTER TABLE public.rbac_users ADD COLUMN IF NOT EXISTS assigned_municipality TEXT DEFAULT 'All Municipalities';
 
 -- Dedicated table for Cloud Role Permission Matrix & Account Capabilities
 CREATE TABLE IF NOT EXISTS public.rbac_matrix_config (
@@ -69,8 +75,20 @@ CREATE TABLE IF NOT EXISTS public.rbac_matrix_config (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Dedicated table for Security Audit Trail & Event Logs
+CREATE TABLE IF NOT EXISTS public.rbac_audit_logs (
+  id TEXT PRIMARY KEY,
+  timestamp TEXT,
+  action TEXT NOT NULL,
+  actor TEXT NOT NULL,
+  details TEXT,
+  severity TEXT DEFAULT 'info',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 ALTER TABLE public.rbac_users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.rbac_matrix_config ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.rbac_audit_logs ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "Allow anon full access to rbac_users" ON public.rbac_users;
 CREATE POLICY "Allow anon full access to rbac_users"
@@ -86,18 +104,26 @@ FOR ALL
 USING (true)
 WITH CHECK (true);
 
-INSERT INTO public.rbac_users (id, username, password, name, role, role_label, branch, status, avatar, email)
+DROP POLICY IF EXISTS "Allow anon full access to rbac_audit_logs" ON public.rbac_audit_logs;
+CREATE POLICY "Allow anon full access to rbac_audit_logs"
+ON public.rbac_audit_logs
+FOR ALL
+USING (true)
+WITH CHECK (true);
+
+INSERT INTO public.rbac_users (id, username, password, name, role, role_label, branch, assigned_municipality, status, avatar, email)
 VALUES
-  ('usr_admin', 'admin', 'adminpassword', 'Jay Ryan Lim', 'admin', 'System Administrator', 'LDN HQ (All Zones)', 'active', 'JL', 'admin@imperialgamingopc.ph'),
-  ('usr_accountant', 'ldn.staff', 'luckybet2026', 'Elena Morales', 'accountant', 'Head Cashier', 'LDN Branch', 'active', 'EM', 'elena.m@imperialgamingopc.ph'),
-  ('usr_supervisor', 'supervisor.carlos', 'luckybet2026', 'Carlos Tan', 'supervisor', 'Branch Supervisor', 'LDN Central Zone', 'active', 'CT', 'carlos.tan@imperialgamingopc.ph'),
-  ('usr_terminal', 'teller.ldn', 'luckybet2026', 'Rico Dela Cruz', 'staff', 'Terminal Staff', 'LDN Terminal 01', 'active', 'RD', 'rico.staff@imperialgamingopc.ph')
+  ('usr_admin', 'admin', 'adminpassword', 'Jay Ryan Lim', 'admin', 'System Administrator', 'Maguindanao HQ', 'All Municipalities', 'active', 'JL', 'admin@5aroyalgamingopc.ph'),
+  ('usr_accountant', 'ldn.staff', 'luckybet2026', 'Elena Morales', 'accountant', 'Head Cashier', 'Parang Branch', 'Parang', 'active', 'EM', 'elena.m@5aroyalgamingopc.ph'),
+  ('usr_supervisor', 'supervisor.carlos', 'luckybet2026', 'Carlos Tan', 'supervisor', 'Branch Supervisor', 'Upi Station', 'Upi', 'active', 'CT', 'carlos.tan@5aroyalgamingopc.ph'),
+  ('usr_terminal', 'teller.ldn', 'luckybet2026', 'Rico Dela Cruz', 'staff', 'Terminal Staff', 'Ampatuan Terminal', 'Ampatuan', 'active', 'RD', 'rico.staff@5aroyalgamingopc.ph')
 ON CONFLICT (username) DO UPDATE SET
   password = EXCLUDED.password,
   name = EXCLUDED.name,
   role = EXCLUDED.role,
   role_label = EXCLUDED.role_label,
   branch = EXCLUDED.branch,
+  assigned_municipality = EXCLUDED.assigned_municipality,
   status = EXCLUDED.status;`
 
 function SvgIcon({ name, size = 16, className = '' }) {
@@ -193,6 +219,18 @@ function SvgIcon({ name, size = 16, className = '' }) {
         <path d="m8.5 12 2.5 2.5 4.5-5" />
       </>
     ),
+    municipality: (
+      <>
+        <line x1="2" y1="22" x2="22" y2="22" />
+        <line x1="12" y1="2" x2="12" y2="5" />
+        <path d="M4 11V7.5L12 3l8 4.5V11" />
+        <line x1="6" y1="18" x2="6" y2="11" />
+        <line x1="10" y1="18" x2="10" y2="11" />
+        <line x1="14" y1="18" x2="14" y2="11" />
+        <line x1="18" y1="18" x2="18" y2="11" />
+        <line x1="3" y1="18" x2="21" y2="18" />
+      </>
+    ),
     folder: (
       <path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z" />
     ),
@@ -254,13 +292,12 @@ export default function RbacManagementView({ currentUser, onSimulateUser, branch
   const [users, setUsers] = useState(() => getRbacUsers())
   const [roles, setRoles] = useState(() => getRbacRoles())
   const [auditLogs, setAuditLogs] = useState(() => getAuditLogs())
-  const [activeTab, setActiveTab] = useState(initialTab || 'users') // 'users' | 'matrix' | 'logs'
-  const [matrixViewMode, setMatrixViewMode] = useState('roles') // 'roles' | 'accounts'
+  const [activeTab, setActiveTab] = useState(initialTab || 'users')
+  const [matrixViewMode, setMatrixViewMode] = useState('roles')
   const [accountPermsRev, setAccountPermsRev] = useState(0)
 
   const canSwitchAccounts = currentUser?.role === 'admin' || Boolean(currentUser?.simulatedFromAdmin)
 
-  // Listen for rbac updates across sessions
   useEffect(() => {
     const handleRbacUpdate = () => {
       setRoles(getRbacRoles())
@@ -276,24 +313,20 @@ export default function RbacManagementView({ currentUser, onSimulateUser, branch
     if (initialTab) setActiveTab(initialTab)
   }, [initialTab])
 
-  // Search & Filter
   const [searchQuery, setSearchQuery] = useState('')
   const [filterRole, setFilterRole] = useState('all')
 
-  // Modals state
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [editingUser, setEditingUser] = useState(null)
   const [deletingUser, setDeletingUser] = useState(null)
   const [isDeleting, setIsDeleting] = useState(false)
   const [feedbackNotice, setFeedbackNotice] = useState('')
-  const [supabaseSyncStatus, setSupabaseSyncStatus] = useState('idle') // 'idle' | 'syncing' | 'connected' | 'table_missing' | 'error'
+  const [supabaseSyncStatus, setSupabaseSyncStatus] = useState('idle')
   const [showSqlModal, setShowSqlModal] = useState(false)
 
-  // Fetch users and sync matrix permissions from Supabase table on mount
   useEffect(() => {
     if (!isSupabaseConfigured) return
 
-    // Pre-sync matrix permissions from Supabase
     syncMatrixPermissionsFromSupabase().catch(() => {})
 
     const unsubRealtime = subscribeToMatrixRealtime(() => {
@@ -305,7 +338,6 @@ export default function RbacManagementView({ currentUser, onSimulateUser, branch
       .then((res) => {
         const deletedList = getDeletedUsernames()
         if (res.success && Array.isArray(res.data) && res.data.length > 0) {
-          // Filter out any user that was previously marked as deleted
           const validUsers = res.data.filter(
             (u) => !deletedList.includes(u.username?.toLowerCase())
           )
@@ -313,7 +345,6 @@ export default function RbacManagementView({ currentUser, onSimulateUser, branch
           saveRbacUsers(validUsers)
           setSupabaseSyncStatus('connected')
 
-          // Background cleanup of any lingering deleted accounts still in Supabase
           const lingering = res.data.filter((u) =>
             deletedList.includes(u.username?.toLowerCase())
           )
@@ -324,7 +355,6 @@ export default function RbacManagementView({ currentUser, onSimulateUser, branch
           setSupabaseSyncStatus('table_missing')
         } else if (res.success && res.data.length === 0) {
           setSupabaseSyncStatus('connected')
-          // Auto-seed default users only if not in deleted list
           const activeDefaults = users.filter(
             (u) => !deletedList.includes(u.username?.toLowerCase())
           )
@@ -332,6 +362,15 @@ export default function RbacManagementView({ currentUser, onSimulateUser, branch
         } else {
           setSupabaseSyncStatus('connected')
         }
+
+        getSupabaseAuditLogs()
+          .then((auditRes) => {
+            if (auditRes.success && Array.isArray(auditRes.data) && auditRes.data.length > 0) {
+              setAuditLogs(auditRes.data)
+              setInternalAuditLogs(auditRes.data)
+            }
+          })
+          .catch(() => {})
       })
       .catch(() => {
         setSupabaseSyncStatus('error')
@@ -342,13 +381,13 @@ export default function RbacManagementView({ currentUser, onSimulateUser, branch
     }
   }, [])
 
-  // New User Form State
   const [formData, setFormData] = useState({
     username: '',
     name: '',
     password: '',
     role: 'accountant',
     branch: `${branchName} Branch`,
+    assignedMunicipality: ALL_MUNICIPALITIES,
     status: 'active',
     email: '',
   })
@@ -385,7 +424,6 @@ export default function RbacManagementView({ currentUser, onSimulateUser, branch
   const tabPerms = useMemo(() => PERMISSIONS.filter((p) => p.type === 'tab'), [])
   const featurePerms = useMemo(() => PERMISSIONS.filter((p) => p.type === 'feature'), [])
 
-  // Filtered Users List
   const filteredUsers = useMemo(() => {
     return users.filter((u) => {
       const matchesSearch =
@@ -406,7 +444,6 @@ export default function RbacManagementView({ currentUser, onSimulateUser, branch
     })
   }, [users, searchQuery, filterRole])
 
-  // Generate random password helper
   const handleGeneratePassword = () => {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%&*'
     let generated = 'LB-'
@@ -416,7 +453,6 @@ export default function RbacManagementView({ currentUser, onSimulateUser, branch
     setFormData((prev) => ({ ...prev, password: generated }))
   }
 
-  // Handle Add User
   const handleCreateUser = (e) => {
     e.preventDefault()
     const cleanUser = formData.username.trim().toLowerCase()
@@ -442,6 +478,7 @@ export default function RbacManagementView({ currentUser, onSimulateUser, branch
       role: formData.role,
       roleLabel: roleDef.label,
       branch: formData.branch || `${branchName} Branch`,
+      assignedMunicipality: formData.assignedMunicipality || ALL_MUNICIPALITIES,
       status: formData.status,
       lastLogin: 'Never',
       createdAt: new Date().toISOString().split('T')[0],
@@ -449,19 +486,16 @@ export default function RbacManagementView({ currentUser, onSimulateUser, branch
       email: formData.email.trim() || `${cleanUser}@luckybetplay.ph`,
     }
 
-    // Unmark in case this username was previously deleted
     unmarkDeletedUsername(cleanUser)
 
     const updated = [newUser, ...users]
     setUsers(updated)
     saveRbacUsers(updated)
 
-    // Save directly to Supabase dedicated table
     if (isSupabaseConfigured) {
       saveRbacUserToSupabase(newUser).catch(() => {})
     }
 
-    // Audit log
     const updatedLogs = addAuditLog(
       'RBAC_USER_CREATED',
       `New user credential ${cleanUser} (${roleDef.label}) created by ${currentUser?.username || 'admin'}`,
@@ -484,7 +518,6 @@ export default function RbacManagementView({ currentUser, onSimulateUser, branch
     showNotification(`User credential "${cleanUser}" successfully created!`)
   }
 
-  // Handle Edit User
   const handleUpdateUser = (e) => {
     e.preventDefault()
     if (!editingUser) return
@@ -498,6 +531,7 @@ export default function RbacManagementView({ currentUser, onSimulateUser, branch
           role: editingUser.role,
           roleLabel: roleDef.label,
           branch: editingUser.branch.trim(),
+          assignedMunicipality: editingUser.assignedMunicipality || ALL_MUNICIPALITIES,
           status: editingUser.status,
           password: editingUser.password.trim(),
           email: editingUser.email.trim(),
@@ -526,7 +560,6 @@ export default function RbacManagementView({ currentUser, onSimulateUser, branch
     showNotification(`Credentials for "${editingUser.username}" saved!`)
   }
 
-  // Handle Deactivate / Activate User Toggle
   const handleToggleUserStatus = async (targetUser) => {
     if (!targetUser) return
     if (targetUser.username === 'admin') {
@@ -537,7 +570,6 @@ export default function RbacManagementView({ currentUser, onSimulateUser, branch
     const nextStatus = targetUser.status === 'suspended' ? 'active' : 'suspended'
     const isNowDeactivated = nextStatus === 'suspended'
 
-    // 1. Update in local state & cache
     const updated = users.map((u) => {
       if (u.id === targetUser.id || u.username.toLowerCase() === targetUser.username.toLowerCase()) {
         return { ...u, status: nextStatus }
@@ -547,7 +579,6 @@ export default function RbacManagementView({ currentUser, onSimulateUser, branch
     setUsers(updated)
     saveRbacUsers(updated)
 
-    // 2. Persist update directly to cloud table
     if (isSupabaseConfigured) {
       const updatedUser = updated.find(
         (u) => u.id === targetUser.id || u.username.toLowerCase() === targetUser.username.toLowerCase()
@@ -559,7 +590,6 @@ export default function RbacManagementView({ currentUser, onSimulateUser, branch
       }
     }
 
-    // 3. Security Audit log
     const updatedLogs = addAuditLog(
       isNowDeactivated ? 'RBAC_USER_DEACTIVATED' : 'RBAC_USER_ACTIVATED',
       `Account @${targetUser.username} was ${isNowDeactivated ? 'deactivated' : 'reactivated'} by ${currentUser?.username || 'admin'}`,
@@ -575,7 +605,6 @@ export default function RbacManagementView({ currentUser, onSimulateUser, branch
     )
   }
 
-  // Handle Delete User
   const handleDeleteUser = async () => {
     if (!deletingUser || isDeleting) return
     if (deletingUser.username === 'admin') {
@@ -589,15 +618,12 @@ export default function RbacManagementView({ currentUser, onSimulateUser, branch
     setIsDeleting(true)
 
     try {
-      // 1. Immediately blacklist in persistent deleted list so localStorage never resurrects it
       recordDeletedUsername(cleanUser)
 
-      // 2. Remove from active state and local cache
       const updated = users.filter((u) => u.id !== targetUser.id && u.username.toLowerCase() !== cleanUser)
       setUsers(updated)
       saveRbacUsers(updated)
 
-      // 3. Delete permanently from cloud directory table
       if (isSupabaseConfigured) {
         const delRes = await deleteRbacUserFromSupabase(targetUser.id, targetUser.username)
         if (!delRes.success) {
@@ -605,7 +631,6 @@ export default function RbacManagementView({ currentUser, onSimulateUser, branch
         }
       }
 
-      // 4. Audit log
       const updatedLogs = addAuditLog(
         'RBAC_USER_DELETED',
         `Account ${cleanUser} was permanently deleted by ${currentUser?.username || 'admin'}`,
@@ -624,7 +649,6 @@ export default function RbacManagementView({ currentUser, onSimulateUser, branch
     }
   }
 
-  // Toggle permission in the matrix by Role Tier
   const handleTogglePermission = (roleKey, permKey) => {
     const currentRole = roles[roleKey]
     if (!currentRole) return
@@ -635,7 +659,6 @@ export default function RbacManagementView({ currentUser, onSimulateUser, branch
     const isTab = permMeta.type === 'tab'
     const isFeature = permMeta.type === 'feature'
 
-    // RULE 1: IF TOGGLING ON A FEATURE WHOSE PARENT TAB IS DISABLED
     if (!isCurrentlyGranted && isFeature) {
       if (areFeatureParentTabsDisabled(permKey, currentPerms)) {
         showNotification({
@@ -653,7 +676,6 @@ export default function RbacManagementView({ currentUser, onSimulateUser, branch
       }
     }
 
-    // RULE 2: IF TOGGLING OFF A TAB, CHECK FOR DEPENDENT FEATURES
     let nextPerms = []
     let autoDisabledFeatures = []
 
@@ -682,9 +704,7 @@ export default function RbacManagementView({ currentUser, onSimulateUser, branch
 
     const affectedUsers = users.filter((u) => u.role === roleKey).map((u) => u.name).join(', ')
 
-    // AUDIT LOG & DETAILED USER NOTIFICATION (ENGLISH)
     if (isCurrentlyGranted) {
-      // Disabled action
       if (isTab) {
         addAuditLog(
           'RBAC_TAB_DISABLED',
@@ -719,7 +739,6 @@ export default function RbacManagementView({ currentUser, onSimulateUser, branch
         })
       }
     } else {
-      // Enabled action
       if (isTab) {
         addAuditLog(
           'RBAC_TAB_ENABLED',
@@ -755,7 +774,6 @@ export default function RbacManagementView({ currentUser, onSimulateUser, branch
     }
   }
 
-  // Toggle permission specifically for an individual Account ("depende sa account")
   const handleToggleAccountPermission = (targetUser, permKey) => {
     const currentPerms = getUserEffectivePermissions(targetUser, roles)
     const isCurrentlyGranted = currentPerms.includes(permKey)
@@ -763,7 +781,6 @@ export default function RbacManagementView({ currentUser, onSimulateUser, branch
     const isTab = permMeta.type === 'tab'
     const isFeature = permMeta.type === 'feature'
 
-    // RULE 1: IF TOGGLING ON A FEATURE WHOSE PARENT TAB IS DISABLED FOR THIS ACCOUNT
     if (!isCurrentlyGranted && isFeature) {
       if (areFeatureParentTabsDisabled(permKey, currentPerms)) {
         showNotification({
@@ -775,7 +792,6 @@ export default function RbacManagementView({ currentUser, onSimulateUser, branch
       }
     }
 
-    // RULE 2: IF TOGGLING OFF A TAB, CHECK FOR DEPENDENT FEATURES
     let nextPerms = []
     let autoDisabledFeatures = []
 
@@ -794,7 +810,6 @@ export default function RbacManagementView({ currentUser, onSimulateUser, branch
     setUserCustomPermissions(targetUser.username, nextPerms)
     setAccountPermsRev((prev) => prev + 1)
 
-    // AUDIT LOG & NOTIFICATIONS (ENGLISH)
     if (isCurrentlyGranted) {
       if (isTab) {
         addAuditLog(
@@ -865,7 +880,6 @@ export default function RbacManagementView({ currentUser, onSimulateUser, branch
     }
   }
 
-  // Reset custom permissions for an individual account back to role defaults
   const handleResetAccountPermissions = (targetUser) => {
     clearUserCustomPermissions(targetUser.username)
     setAccountPermsRev((prev) => prev + 1)
@@ -883,7 +897,6 @@ export default function RbacManagementView({ currentUser, onSimulateUser, branch
   const [showResetRolesConfirm, setShowResetRolesConfirm] = useState(false)
   const [isResettingRoles, setIsResettingRoles] = useState(false)
 
-  // Reset Role Matrix to Defaults
   const handleResetRoles = () => {
     setShowResetRolesConfirm(true)
   }
@@ -899,7 +912,6 @@ export default function RbacManagementView({ currentUser, onSimulateUser, branch
 
   return (
     <div className="rbac-management-view">
-      {/* View Header & KPIs */}
       <div className="rbac-header-card">
         <div className="rbac-header-titles">
           <div className="rbac-eyebrow-chip">
@@ -979,7 +991,6 @@ export default function RbacManagementView({ currentUser, onSimulateUser, branch
         </div>
       )}
 
-      {/* Interactive Active Test Session Simulator Bar (Admin Only) */}
       {canSwitchAccounts && (
         <div className="rbac-simulator-bar">
           <div className="simulator-label-group">
@@ -1011,6 +1022,7 @@ export default function RbacManagementView({ currentUser, onSimulateUser, branch
                         roleLabel: rDef.label,
                         roleBadge: rDef.badge,
                         branch: u.branch,
+                        assignedMunicipality: u.assignedMunicipality || ALL_MUNICIPALITIES,
                         avatar: u.avatar || u.name.substring(0, 2).toUpperCase(),
                         token: 'rbac-token-' + u.id,
                         loginTime: new Date().toISOString(),
@@ -1032,7 +1044,6 @@ export default function RbacManagementView({ currentUser, onSimulateUser, branch
         </div>
       )}
 
-      {/* Navigation Sub-Tabs */}
       <div className="rbac-nav-tabs-bar">
         <div className="rbac-tabs-left">
           <button
@@ -1103,9 +1114,6 @@ export default function RbacManagementView({ currentUser, onSimulateUser, branch
         )}
       </div>
 
-      {/* ===================================================================== */}
-      {/* TAB 1: USER CREDENTIALS LIST                                         */}
-      {/* ===================================================================== */}
       {activeTab === 'users' && (
         <div className="rbac-content-container">
           <div className="rbac-users-grid">
@@ -1160,6 +1168,18 @@ export default function RbacManagementView({ currentUser, onSimulateUser, branch
                       {roleDef.label}
                     </span>
                     <span className="rbac-branch-pill">📍 {user.branch}</span>
+                    <span
+                      className="rbac-branch-pill rbac-muni-pill"
+                      style={{
+                        background: '#ecfdf5',
+                        color: '#047857',
+                        borderColor: '#a7f3d0',
+                        fontWeight: 600,
+                      }}
+                      title={`Assigned Municipality Scope: ${user.assignedMunicipality || ALL_MUNICIPALITIES}`}
+                    >
+                      <SvgIcon name="municipality" size={12} /> {user.assignedMunicipality || ALL_MUNICIPALITIES}
+                    </span>
                   </div>
 
                   <div className="rbac-user-card-body">
@@ -1194,6 +1214,7 @@ export default function RbacManagementView({ currentUser, onSimulateUser, branch
                               roleLabel: roleDef.label,
                               roleBadge: roleDef.badge,
                               branch: user.branch,
+                              assignedMunicipality: user.assignedMunicipality || ALL_MUNICIPALITIES,
                               avatar: user.avatar,
                               token: 'rbac-token-' + user.id,
                               loginTime: new Date().toISOString(),
@@ -1266,9 +1287,6 @@ export default function RbacManagementView({ currentUser, onSimulateUser, branch
         </div>
       )}
 
-      {/* ===================================================================== */}
-      {/* TAB 2: ROLE & ACCOUNT PERMISSIONS MATRIX                              */}
-      {/* ===================================================================== */}
       {activeTab === 'matrix' && (
         <div className="rbac-matrix-container">
           <div className="rbac-matrix-header-box">
@@ -1314,7 +1332,6 @@ export default function RbacManagementView({ currentUser, onSimulateUser, branch
             </div>
           </div>
 
-          {/* Mode Selector: By Role Tier vs By Individual Account */}
           <div className="rbac-matrix-mode-bar">
             <div className="matrix-mode-toggle-group">
               <button
@@ -1342,7 +1359,6 @@ export default function RbacManagementView({ currentUser, onSimulateUser, branch
           </div>
 
           {matrixViewMode === 'roles' ? (
-            /* MODE 1: MATRIX BY ROLE TIER */
             <div className="rbac-matrix-table-wrap">
               <table className="rbac-matrix-table">
                 <thead>
@@ -1381,7 +1397,6 @@ export default function RbacManagementView({ currentUser, onSimulateUser, branch
                   </tr>
                 </thead>
                 <tbody>
-                  {/* SECTION 1: WORKSPACE TABS */}
                   <tr className="matrix-section-divider-row section-tabs-row">
                     <td colSpan={1 + Object.keys(roles).length}>
                       <div className="matrix-section-banner">
@@ -1441,7 +1456,6 @@ export default function RbacManagementView({ currentUser, onSimulateUser, branch
                     </tr>
                   ))}
 
-                  {/* SECTION 2: IN-TAB FEATURES */}
                   <tr className="matrix-section-divider-row section-features-row">
                     <td colSpan={1 + Object.keys(roles).length}>
                       <div className="matrix-section-banner">
@@ -1517,7 +1531,6 @@ export default function RbacManagementView({ currentUser, onSimulateUser, branch
               </table>
             </div>
           ) : (
-            /* MODE 2: MATRIX BY SPECIFIC ACCOUNT ("By Individual Account") */
             <div className="rbac-matrix-table-wrap">
               <table className="rbac-matrix-table account-matrix-table">
                 <thead>
@@ -1572,7 +1585,6 @@ export default function RbacManagementView({ currentUser, onSimulateUser, branch
                   </tr>
                 </thead>
                 <tbody>
-                  {/* SECTION 1: WORKSPACE TABS */}
                   <tr className="matrix-section-divider-row section-tabs-row">
                     <td colSpan={1 + users.length}>
                       <div className="matrix-section-banner">
@@ -1636,7 +1648,6 @@ export default function RbacManagementView({ currentUser, onSimulateUser, branch
                     </tr>
                   ))}
 
-                  {/* SECTION 2: IN-TAB FEATURES */}
                   <tr className="matrix-section-divider-row section-features-row">
                     <td colSpan={1 + users.length}>
                       <div className="matrix-section-banner">
@@ -1719,9 +1730,6 @@ export default function RbacManagementView({ currentUser, onSimulateUser, branch
         </div>
       )}
 
-      {/* ===================================================================== */}
-      {/* TAB 3: AUDIT & SECURITY LOGS                                         */}
-      {/* ===================================================================== */}
       {activeTab === 'logs' && (
         <div className="rbac-audit-container">
           <div className="rbac-audit-header-box">
@@ -1751,9 +1759,6 @@ export default function RbacManagementView({ currentUser, onSimulateUser, branch
         </div>
       )}
 
-      {/* ===================================================================== */}
-      {/* MODAL: ADD NEW USER CREDENTIAL                                       */}
-      {/* ===================================================================== */}
       {isAddModalOpen && (
         <div
           className="rbac-modal-backdrop"
@@ -1844,9 +1849,30 @@ export default function RbacManagementView({ currentUser, onSimulateUser, branch
                     type="text"
                     value={formData.branch}
                     onChange={(e) => setFormData({ ...formData, branch: e.target.value })}
-                    placeholder="e.g. LDN Branch"
+                    placeholder="e.g. Maguindanao Branch"
                   />
                 </div>
+              </div>
+
+              <div className="rbac-form-group">
+                <label>Assigned Municipality (Report &amp; Data Grouping Scope)</label>
+                <select
+                  value={formData.assignedMunicipality || ALL_MUNICIPALITIES}
+                  onChange={(e) => setFormData({ ...formData, assignedMunicipality: e.target.value })}
+                  style={{ fontWeight: 600 }}
+                >
+                  <option value={ALL_MUNICIPALITIES}>🌐 All Municipalities (HQ Access — Full Maguindanao)</option>
+                  {MUNICIPALITIES.filter((m) => m !== 'Other / HQ').map((muni) => (
+                    <option key={muni} value={muni}>
+                      📍 {muni}
+                    </option>
+                  ))}
+                </select>
+                <small className="rbac-field-hint" style={{ marginTop: '5px', display: 'block' }}>
+                  {formData.assignedMunicipality === ALL_MUNICIPALITIES
+                    ? '✓ Full Scope: Can view consolidated data, all supervisors, and all tellers across Maguindanao.'
+                    : `🔒 Restricted Scope: Reports, draws, supervisors, tellers, and deficits will be locked strictly to ${formData.assignedMunicipality} only.`}
+                </small>
               </div>
 
               <div className="rbac-form-row-2col">
@@ -1889,9 +1915,6 @@ export default function RbacManagementView({ currentUser, onSimulateUser, branch
         </div>
       )}
 
-      {/* ===================================================================== */}
-      {/* MODAL: EDIT USER CREDENTIAL                                          */}
-      {/* ===================================================================== */}
       {editingUser && (
         <div
           className="rbac-modal-backdrop"
@@ -1965,6 +1988,28 @@ export default function RbacManagementView({ currentUser, onSimulateUser, branch
               </div>
 
               <div className="rbac-form-group">
+                <label>Assigned Municipality (Report &amp; Data Grouping Scope)</label>
+                <select
+                  value={editingUser.assignedMunicipality || ALL_MUNICIPALITIES}
+                  disabled={editingUser.username === 'admin'}
+                  onChange={(e) => setEditingUser({ ...editingUser, assignedMunicipality: e.target.value })}
+                  style={{ fontWeight: 600 }}
+                >
+                  <option value={ALL_MUNICIPALITIES}>🌐 All Municipalities (HQ Access — Full Maguindanao)</option>
+                  {MUNICIPALITIES.filter((m) => m !== 'Other / HQ').map((muni) => (
+                    <option key={muni} value={muni}>
+                      📍 {muni}
+                    </option>
+                  ))}
+                </select>
+                <small className="rbac-field-hint" style={{ marginTop: '5px', display: 'block' }}>
+                  {editingUser.assignedMunicipality === ALL_MUNICIPALITIES || !editingUser.assignedMunicipality
+                    ? '✓ Full Scope: Can view consolidated data, all supervisors, and all tellers across Maguindanao.'
+                    : `🔒 Restricted Scope: Reports, draws, supervisors, tellers, and deficits will be locked strictly to ${editingUser.assignedMunicipality} only.`}
+                </small>
+              </div>
+
+              <div className="rbac-form-group">
                 <label>Status</label>
                 <select
                   value={editingUser.status}
@@ -1993,9 +2038,6 @@ export default function RbacManagementView({ currentUser, onSimulateUser, branch
         </div>
       )}
 
-      {/* ===================================================================== */}
-      {/* MODAL: DELETE CONFIRMATION                                           */}
-      {/* ===================================================================== */}
       {deletingUser && (
         <div
           className="rbac-modal-backdrop"
@@ -2043,9 +2085,6 @@ export default function RbacManagementView({ currentUser, onSimulateUser, branch
         </div>
       )}
 
-      {/* ===================================================================== */}
-      {/* MODAL: CLOUD DATABASE SQL SETUP HELPER                               */}
-      {/* ===================================================================== */}
       {showSqlModal && (
         <div className="rbac-modal-backdrop" onClick={() => setShowSqlModal(false)}>
           <div className="rbac-modal-window modal-sql-setup" onClick={(e) => e.stopPropagation()}>
@@ -2097,7 +2136,6 @@ export default function RbacManagementView({ currentUser, onSimulateUser, branch
         </div>
       )}
 
-      {/* Confirmation Modal for Resetting Role Matrix */}
       <ConfirmActionModal
         isOpen={showResetRolesConfirm}
         title="Reset Role Permissions Matrix?"

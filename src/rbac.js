@@ -1,14 +1,7 @@
-// src/rbac.js - Role-Based Access Control (RBAC) & Credential Store for Imperial Gaming OPC
-import { saveSupabaseMatrixConfig } from './supabase.js'
-
-const USERS_STORAGE_KEY = 'luckybet_rbac_users'
-const ROLES_STORAGE_KEY = 'luckybet_rbac_roles'
-const AUDIT_STORAGE_KEY = 'luckybet_rbac_audit_logs'
+import { saveSupabaseMatrixConfig, saveSupabaseAuditLog } from './supabase.js'
+import { resolveMunicipalityFromBranch, ALL_MUNICIPALITIES } from './municipalities.js'
 
 export const PERMISSIONS = [
-  // ---------------------------------------------------------------------------
-  // 1. WORKSPACE TABS (Sidebar Navigation Menus)
-  // ---------------------------------------------------------------------------
   {
     key: 'view_overview',
     label: 'Consolidated Overview & KPIs Tab',
@@ -55,9 +48,6 @@ export const PERMISSIONS = [
     description: 'Configure baseline agent commission rates per supervisor and individual teller overrides.',
   },
 
-  // ---------------------------------------------------------------------------
-  // 2. IN-TAB FEATURES (Operational Tools & Actions inside Workspaces)
-  // ---------------------------------------------------------------------------
   {
     key: 'print_statements',
     label: 'Print Remittance Statements',
@@ -108,6 +98,16 @@ export const PERMISSIONS = [
     parentTabLabels: ['Commissions Tab'],
     description: 'Allows updating supervisor baseline rates and provisioning custom overrides for specific agents.',
   },
+  {
+    key: 'switch_municipality',
+    label: 'Filter & Switch Municipalities',
+    type: 'feature',
+    featureName: 'Municipality Filter',
+    group: 'Operations',
+    parentTabs: ['view_overview', 'view_reports'],
+    parentTabLabels: ['Overview Tab', 'Draw Reports Tab'],
+    description: 'Allows viewing and filtering other municipalities. When disabled or when assigned to a specific municipality, accounts are strictly locked to their assigned municipality with no dropdown.',
+  },
 ]
 
 export const DEFAULT_ROLES = {
@@ -130,6 +130,7 @@ export const DEFAULT_ROLES = {
       'view_raw_feed',
       'create_credentials',
       'edit_commissions',
+      'switch_municipality',
     ],
   },
   accountant: {
@@ -180,12 +181,13 @@ export const DEFAULT_USERS = [
     name: 'Jay Ryan Lim',
     role: 'admin',
     roleLabel: 'System Administrator',
-    branch: 'LDN HQ (All Zones)',
+    branch: 'Maguindanao HQ',
+    assignedMunicipality: 'All Municipalities',
     status: 'active',
     lastLogin: 'Active Now',
     createdAt: '2026-01-15',
     avatar: 'JL',
-    email: 'admin@imperialgamingopc.ph',
+    email: 'admin@5aroyalgamingopc.ph',
   },
   {
     id: 'usr_accountant',
@@ -194,12 +196,13 @@ export const DEFAULT_USERS = [
     name: 'Elena Morales',
     role: 'accountant',
     roleLabel: 'Head Cashier',
-    branch: 'LDN Branch',
+    branch: 'Parang Branch',
+    assignedMunicipality: 'Parang',
     status: 'active',
     lastLogin: 'Today, 09:15 AM',
     createdAt: '2026-02-01',
     avatar: 'EM',
-    email: 'elena.m@imperialgamingopc.ph',
+    email: 'elena.m@5aroyalgamingopc.ph',
   },
   {
     id: 'usr_supervisor',
@@ -208,12 +211,13 @@ export const DEFAULT_USERS = [
     name: 'Carlos Tan',
     role: 'supervisor',
     roleLabel: 'Branch Supervisor',
-    branch: 'LDN Central Zone',
+    branch: 'Upi Station',
+    assignedMunicipality: 'Upi',
     status: 'active',
     lastLogin: 'Yesterday, 04:30 PM',
     createdAt: '2026-02-10',
     avatar: 'CT',
-    email: 'carlos.tan@imperialgamingopc.ph',
+    email: 'carlos.tan@5aroyalgamingopc.ph',
   },
   {
     id: 'usr_terminal',
@@ -222,12 +226,13 @@ export const DEFAULT_USERS = [
     name: 'Rico Dela Cruz',
     role: 'staff',
     roleLabel: 'Terminal Staff',
-    branch: 'LDN Terminal 01',
+    branch: 'Ampatuan Terminal',
+    assignedMunicipality: 'Ampatuan',
     status: 'active',
     lastLogin: '3 days ago',
     createdAt: '2026-02-20',
     avatar: 'RD',
-    email: 'rico.staff@imperialgamingopc.ph',
+    email: 'rico.staff@5aroyalgamingopc.ph',
   },
 ]
 
@@ -258,121 +263,122 @@ export const DEFAULT_AUDIT_LOGS = [
   },
 ]
 
-// -----------------------------------------------------------------------------
-// Storage Accessors
-// -----------------------------------------------------------------------------
-const isBrowser = typeof window !== 'undefined' && typeof localStorage !== 'undefined'
+let inMemoryRoles = { ...DEFAULT_ROLES }
+let inMemoryUserPerms = {}
+let inMemoryUsers = null
+let inMemoryDeleted = []
+let inMemoryAuditLogs = [...DEFAULT_AUDIT_LOGS]
+
+export function setInternalRbacRoles(roles) {
+  if (!roles || typeof roles !== 'object') return false
+  const oldStr = JSON.stringify(inMemoryRoles)
+  const newStr = JSON.stringify(roles)
+  if (oldStr !== newStr) {
+    inMemoryRoles = { ...roles }
+    return true
+  }
+  return false
+}
+
+export function setInternalUserCustomPerms(perms) {
+  if (!perms || typeof perms !== 'object') return false
+  const oldStr = JSON.stringify(inMemoryUserPerms)
+  const newStr = JSON.stringify(perms)
+  if (oldStr !== newStr) {
+    inMemoryUserPerms = { ...perms }
+    return true
+  }
+  return false
+}
+
+export function setInternalRbacUsers(users) {
+  if (Array.isArray(users)) {
+    inMemoryUsers = [...users]
+  }
+}
+
+export function setInternalAuditLogs(logs) {
+  if (Array.isArray(logs)) {
+    inMemoryAuditLogs = [...logs]
+  }
+}
 
 export function getRbacRoles() {
-  if (!isBrowser) return DEFAULT_ROLES
-  try {
-    const raw = localStorage.getItem(ROLES_STORAGE_KEY)
-    if (raw) return JSON.parse(raw)
-  } catch (err) {
-    console.warn('Failed to parse roles from localStorage:', err)
+  if (inMemoryRoles.admin && Array.isArray(inMemoryRoles.admin.permissions) && !inMemoryRoles.admin.permissions.includes('switch_municipality')) {
+    inMemoryRoles.admin.permissions.push('switch_municipality')
   }
-  return DEFAULT_ROLES
+  return inMemoryRoles
 }
 
 export function saveRbacRoles(roles) {
-  if (!isBrowser) return
-  try {
-    localStorage.setItem(ROLES_STORAGE_KEY, JSON.stringify(roles))
+  inMemoryRoles = { ...roles }
+  if (typeof window !== 'undefined') {
     window.dispatchEvent(new CustomEvent('luckybet_rbac_change', { detail: { roles } }))
-
-    // Asynchronously synchronize online to Supabase Cloud Matrix
-    saveSupabaseMatrixConfig({
-      roles,
-      userPerms: getUserCustomPermissionsMap(),
-    }).catch((err) => {
-      console.warn('Supabase cloud roles sync failed:', err)
-    })
-  } catch (err) {
-    console.error('Failed to save roles to localStorage:', err)
   }
+
+  saveSupabaseMatrixConfig({
+    roles,
+    userPerms: getUserCustomPermissionsMap(),
+  }).catch((err) => {
+    console.warn('Supabase cloud roles sync failed:', err)
+  })
 }
 
-const USER_PERMS_KEY = 'luckybet_rbac_user_perms'
-
 export function getUserCustomPermissionsMap() {
-  if (!isBrowser) return {}
-  try {
-    const raw = localStorage.getItem(USER_PERMS_KEY)
-    if (raw) return JSON.parse(raw)
-  } catch {}
-  return {}
+  return inMemoryUserPerms
 }
 
 export function saveUserCustomPermissionsMap(map) {
-  if (!isBrowser) return
-  try {
-    localStorage.setItem(USER_PERMS_KEY, JSON.stringify(map))
+  inMemoryUserPerms = { ...map }
+  if (typeof window !== 'undefined') {
     window.dispatchEvent(new CustomEvent('luckybet_rbac_change', { detail: { userPerms: map } }))
-
-    // Asynchronously synchronize online to Supabase Cloud Matrix
-    saveSupabaseMatrixConfig({
-      roles: getRbacRoles(),
-      userPerms: map,
-    }).catch((err) => {
-      console.warn('Supabase cloud user perms sync failed:', err)
-    })
-  } catch (err) {
-    console.error('Failed to save user custom permissions:', err)
   }
+
+  saveSupabaseMatrixConfig({
+    roles: getRbacRoles(),
+    userPerms: map,
+  }).catch((err) => {
+    console.warn('Supabase cloud user perms sync failed:', err)
+  })
 }
 
 export function getUserCustomPermissions(username) {
   if (!username) return null
-  const map = getUserCustomPermissionsMap()
   const clean = username.trim().toLowerCase()
-  return Array.isArray(map[clean]) ? map[clean] : null
+  return Array.isArray(inMemoryUserPerms[clean]) ? inMemoryUserPerms[clean] : null
 }
 
 export function setUserCustomPermissions(username, permissions) {
   if (!username) return
-  const map = getUserCustomPermissionsMap()
   const clean = username.trim().toLowerCase()
   if (permissions === null || permissions === undefined) {
-    delete map[clean]
+    delete inMemoryUserPerms[clean]
   } else {
-    map[clean] = permissions
+    inMemoryUserPerms[clean] = permissions
   }
-  saveUserCustomPermissionsMap(map)
+  saveUserCustomPermissionsMap(inMemoryUserPerms)
 }
 
 export function clearUserCustomPermissions(username) {
   setUserCustomPermissions(username, null)
 }
 
-const DELETED_USERS_KEY = 'luckybet_rbac_deleted_users'
-
 export function getDeletedUsernames() {
-  if (!isBrowser) return []
-  try {
-    const raw = localStorage.getItem(DELETED_USERS_KEY)
-    if (raw) return JSON.parse(raw)
-  } catch {}
-  return []
+  return inMemoryDeleted
 }
 
 export function recordDeletedUsername(username) {
-  if (!isBrowser || !username) return
-  try {
-    const list = getDeletedUsernames()
-    const clean = username.trim().toLowerCase()
-    if (!list.includes(clean)) {
-      list.push(clean)
-      localStorage.setItem(DELETED_USERS_KEY, JSON.stringify(list))
-    }
-  } catch {}
+  if (!username) return
+  const clean = username.trim().toLowerCase()
+  if (!inMemoryDeleted.includes(clean)) {
+    inMemoryDeleted.push(clean)
+  }
 }
 
 export function unmarkDeletedUsername(username) {
-  if (!isBrowser || !username) return
-  try {
-    const list = getDeletedUsernames().filter((u) => u !== username.trim().toLowerCase())
-    localStorage.setItem(DELETED_USERS_KEY, JSON.stringify(list))
-  } catch {}
+  if (!username) return
+  const clean = username.trim().toLowerCase()
+  inMemoryDeleted = inMemoryDeleted.filter((u) => u !== clean)
 }
 
 export function sanitizeBranchString(str) {
@@ -381,92 +387,58 @@ export function sanitizeBranchString(str) {
 }
 
 export function getRbacUsers() {
-  if (!isBrowser) return DEFAULT_USERS
-  const deleted = getDeletedUsernames()
-
-  try {
-    const raw = localStorage.getItem(USERS_STORAGE_KEY)
-    if (raw) {
-      const parsed = JSON.parse(raw)
-      if (Array.isArray(parsed)) {
-        let changed = false
-        const sanitized = parsed.map((u) => {
-          const newBranch = sanitizeBranchString(u.branch)
-          const newEmail = u.email ? u.email.replace(/luckybetplay\.ph/gi, 'imperialgamingopc.ph').replace(/glowingfortune\.ph/gi, 'imperialgamingopc.ph') : u.email
-          const newUsername = u.username ? u.username.replace(/^mandaue\.staff$/i, 'ldn.staff').replace(/^teller\.mandaue$/i, 'teller.ldn') : u.username
-          if (newBranch !== u.branch || newEmail !== u.email || newUsername !== u.username) {
-            changed = true
-          }
-          return {
-            ...u,
-            username: newUsername,
-            branch: newBranch,
-            email: newEmail,
-          }
-        }).filter((u) => !deleted.includes(u.username.toLowerCase()))
-
-        if (changed) {
-          localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(sanitized))
+  if (!inMemoryUsers) {
+    inMemoryUsers = DEFAULT_USERS.map((u) => {
+      let resolvedMuni = u.assignedMunicipality
+      if (!resolvedMuni || resolvedMuni === ALL_MUNICIPALITIES) {
+        const fromBranch = resolveMunicipalityFromBranch(u.branch)
+        if (fromBranch && fromBranch !== ALL_MUNICIPALITIES) {
+          resolvedMuni = fromBranch
         }
-        return sanitized
       }
-    }
-  } catch (err) {
-    console.warn('Failed to parse users from localStorage:', err)
+      return {
+        ...u,
+        assignedMunicipality: resolvedMuni || ALL_MUNICIPALITIES,
+      }
+    })
   }
-
-  // Initialize default users if not set, omitting any deleted ones
-  const initial = DEFAULT_USERS.filter((u) => !deleted.includes(u.username.toLowerCase()))
-  try {
-    localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(initial))
-  } catch {}
-  return initial
+  return inMemoryUsers.filter((u) => !inMemoryDeleted.includes(u.username.toLowerCase()))
 }
 
 export function saveRbacUsers(users) {
-  if (!isBrowser) return
-  try {
-    localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(users))
-  } catch (err) {
-    console.error('Failed to save users to localStorage:', err)
+  if (Array.isArray(users)) {
+    inMemoryUsers = [...users]
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('luckybet_rbac_change', { detail: { users } }))
+    }
   }
 }
 
 export function getAuditLogs() {
-  try {
-    const raw = localStorage.getItem(AUDIT_STORAGE_KEY)
-    if (raw) {
-      const parsed = JSON.parse(raw)
-      if (Array.isArray(parsed)) return parsed
-    }
-  } catch {}
-  return DEFAULT_AUDIT_LOGS
+  return inMemoryAuditLogs
 }
 
 export function addAuditLog(action, details, actor = 'current_user', severity = 'info') {
-  try {
-    const logs = getAuditLogs()
-    const now = new Date()
-    const timeStr = `Today, ${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
-    const newEntry = {
-      id: `log_${Date.now()}`,
-      timestamp: timeStr,
-      action,
-      actor,
-      details,
-      severity,
-    }
-    const updated = [newEntry, ...logs].slice(0, 50)
-    localStorage.setItem(AUDIT_STORAGE_KEY, JSON.stringify(updated))
-    return updated
-  } catch {
-    return []
+  const now = new Date()
+  const timeStr = `Today, ${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+  const newEntry = {
+    id: `log_${Date.now()}`,
+    timestamp: timeStr,
+    action,
+    actor,
+    details,
+    severity,
   }
+  inMemoryAuditLogs = [newEntry, ...inMemoryAuditLogs].slice(0, 50)
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('luckybet_rbac_change', { detail: { log: newEntry } }))
+  }
+  try {
+    saveSupabaseAuditLog(newEntry).catch(() => {})
+  } catch {}
+  return inMemoryAuditLogs
 }
 
-// -----------------------------------------------------------------------------
-// Authentication & RBAC Verification (Strict Directory Matching)
-// -----------------------------------------------------------------------------
 export function verifyUserCredentials(username, password) {
   const users = getRbacUsers()
   const cleanUser = String(username || '').trim().toLowerCase()
@@ -477,7 +449,6 @@ export function verifyUserCredentials(username, password) {
     return null
   }
 
-  // Check if account exists but is deactivated
   const userRecord = users.find((u) => u.username.toLowerCase() === cleanUser)
   if (userRecord && (userRecord.status === 'suspended' || userRecord.status === 'inactive')) {
     if (userRecord.password === cleanPass) {
@@ -485,7 +456,6 @@ export function verifyUserCredentials(username, password) {
     }
   }
 
-  // Strict check: Account MUST exist in directory, be active, and password MUST match exactly
   const match = users.find(
     (u) =>
       u.status === 'active' &&
@@ -496,6 +466,22 @@ export function verifyUserCredentials(username, password) {
   if (match) {
     const roles = getRbacRoles()
     const roleDef = roles[match.role] || DEFAULT_ROLES[match.role] || DEFAULT_ROLES.staff
+    const defUser = DEFAULT_USERS.find((d) => d.username.toLowerCase() === match.username.toLowerCase())
+    let resolvedMuni = match.assignedMunicipality
+    if (!resolvedMuni || resolvedMuni === ALL_MUNICIPALITIES) {
+      if (defUser && defUser.assignedMunicipality && defUser.assignedMunicipality !== ALL_MUNICIPALITIES) {
+        resolvedMuni = defUser.assignedMunicipality
+      } else {
+        const fromBranch = resolveMunicipalityFromBranch(match.branch)
+        if (fromBranch && fromBranch !== ALL_MUNICIPALITIES) {
+          resolvedMuni = fromBranch
+        }
+      }
+    }
+    if (!resolvedMuni) {
+      resolvedMuni = ALL_MUNICIPALITIES
+    }
+
     return {
       id: match.id,
       username: match.username,
@@ -505,6 +491,7 @@ export function verifyUserCredentials(username, password) {
       roleBadge: roleDef.badge,
       permissions: getUserEffectivePermissions(match, roles),
       branch: match.branch,
+      assignedMunicipality: resolvedMuni,
       avatar: match.avatar || match.name.substring(0, 2).toUpperCase(),
       email: match.email,
       loginTime: new Date().toISOString(),
@@ -559,19 +546,15 @@ export function areFeatureParentTabsDisabled(permKey, activePermissions = []) {
   if (meta.type !== 'feature') return false
   const parentTabs = meta.parentTabs || []
   if (parentTabs.length === 0) return false
-  // Feature can only be functional if at least one of its parent tabs is active
   const hasActiveParent = parentTabs.some((tabKey) => activePermissions.includes(tabKey))
   return !hasActiveParent
 }
 
 export function getAffectedFeaturesWhenTabDisabled(tabKey, currentPerms = []) {
-  // If tabKey is removed, find all features that lose their last remaining parent tab
   const remainingWithoutTab = currentPerms.filter((k) => k !== tabKey)
   return PERMISSIONS.filter((p) => {
     if (p.type !== 'feature' || !p.parentTabs?.includes(tabKey)) return false
-    // Only care if the feature is currently granted
     if (!currentPerms.includes(p.key)) return false
-    // Check if any other parent tab remains active
     const hasRemainingParent = p.parentTabs.some((pt) => remainingWithoutTab.includes(pt))
     return !hasRemainingParent
   })
@@ -582,7 +565,6 @@ export function hasPermission(currentUser, permKey, roles = null) {
   const perms = getUserEffectivePermissions(currentUser, roles)
   if (!perms.includes(permKey)) return false
 
-  // Strict check: if it is an in-tab feature, at least one of its parent tabs MUST be active
   const meta = getPermissionMeta(permKey)
   if (meta.type === 'feature' && meta.parentTabs?.length > 0) {
     const hasParentTab = meta.parentTabs.some((tabKey) => perms.includes(tabKey))
