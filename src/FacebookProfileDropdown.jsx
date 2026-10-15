@@ -191,7 +191,7 @@ export default function FacebookProfileDropdown({
                   @{currentUser?.username || 'user'} &bull; {userRoleText}
                 </span>
                 <span className="fb-profile-branch">
-                  {(currentUser?.branch ? currentUser.branch.replace(/Mandaue/gi, 'LDN') : 'LDN Branch')}
+                  {(currentUser?.branch ? currentUser.branch.replace(/Mandaue|LDN/gi, 'Maguindanao') : 'Maguindanao Branch')}
                 </span>
                 {currentUser?.assignedMunicipality && (
                   <span
@@ -425,7 +425,7 @@ export default function FacebookProfileDropdown({
           </div>
 
           <div className="fb-dropdown-footer">
-            <span>5A Royal Gaming OPC &bull; LDN Branch</span>
+            <span>5A Royal Gaming OPC &bull; Maguindanao Branch</span>
           </div>
         </div>
       )}

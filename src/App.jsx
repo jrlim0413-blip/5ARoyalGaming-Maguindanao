@@ -48,7 +48,7 @@ const overallApiUrl = import.meta.env.VITE_OVERALL_API_URL || 'https://stl-ldn-a
 const muniSupervisorApiUrl = import.meta.env.VITE_MUNI_SUPERVISOR_API_URL || import.meta.env.VITE_SUPERVISOR_API_URL || 'https://stl-mag-api.com/api/accountant/supervisor?id=2'
 const supervisorApiUrl = muniSupervisorApiUrl
 const authorization = import.meta.env.VITE_AUTHORIZATION || ''
-const configuredBranch = import.meta.env.VITE_BRANCH_NAME || 'LDN'
+const configuredBranch = import.meta.env.VITE_BRANCH_NAME || 'Maguindanao'
 
 function getCurrentDate() {
   return formatDate(new Date())
@@ -1075,7 +1075,7 @@ function SupervisorStatementTable({
       <div className="statement-signatures-section">
         <div className="statement-sig-column">
           <div className="statement-sig-line" />
-          <span className="statement-sig-title">SUPERVISOR - {branchName ? branchName.toUpperCase() : 'LDN'}</span>
+          <span className="statement-sig-title">SUPERVISOR - {branchName ? branchName.toUpperCase() : 'MAGUINDANAO'}</span>
           <strong className="statement-sig-name">{group?.supervisor || 'BRANCH SUPERVISOR'}</strong>
           <span className="statement-sig-date">Date Signed: _____________________</span>
         </div>
@@ -2367,7 +2367,7 @@ function App() {
   }, [activeView, currentUser, loadReport, selectedDate])
 
   const rawBranchName = (!import.meta.env.VITE_BRANCH_NAME && rows.find((r) => r?.location || r?.branch || r?.branchName)?.location) || configuredBranch
-  const branchName = (rawBranchName || 'LDN').replace(/Mandaue/gi, 'LDN')
+  const branchName = (rawBranchName || 'Maguindanao').replace(/Mandaue|LDN/gi, 'Maguindanao')
 
   const muniLookup = useMemo(() => buildSupervisorMunicipalityLookup(supervisorRows), [supervisorRows])
 

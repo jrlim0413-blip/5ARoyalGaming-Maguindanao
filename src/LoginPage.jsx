@@ -134,7 +134,7 @@ function SvgIcon({ name, size = 16, className = '' }) {
   )
 }
 
-export default function LoginPage({ onLoginSuccess, branchName = 'LDN' }) {
+export default function LoginPage({ onLoginSuccess, branchName = 'Maguindanao' }) {
   const [username, setUsername] = useState('ldn.staff')
   const [password, setPassword] = useState('luckybet2026')
   const [showPassword, setShowPassword] = useState(false)
@@ -380,7 +380,7 @@ export default function LoginPage({ onLoginSuccess, branchName = 'LDN' }) {
       <div className="stl-login-container">
         <section
           className="stl-hero-panel"
-          aria-label="STL LDN Interactive Showcase"
+          aria-label="STL Maguindanao Interactive Showcase"
           onMouseEnter={() => setIsPaused(true)}
           onMouseLeave={() => setIsPaused(false)}
         >
@@ -809,7 +809,7 @@ export default function LoginPage({ onLoginSuccess, branchName = 'LDN' }) {
                     className="stl-text-input"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
-                    placeholder="e.g. ldn.staff or your email"
+                    placeholder="e.g. admin, maguindanao.staff or your email"
                     autoComplete="username"
                     required
                   />
@@ -930,7 +930,7 @@ export default function LoginPage({ onLoginSuccess, branchName = 'LDN' }) {
               <div className="stl-modal-tip-box">
                 <strong>Evaluation Credentials:</strong>
                 <span>
-                  Username: <code>ldn.staff</code>
+                  Username: <code>admin</code> or <code>maguindanao.staff</code>
                   <br />
                   Password: <code>luckybet2026</code>
                 </span>

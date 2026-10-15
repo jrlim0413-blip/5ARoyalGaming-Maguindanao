@@ -250,7 +250,7 @@ export const DEFAULT_AUDIT_LOGS = [
     timestamp: 'Today, 08:45 AM',
     action: 'RBAC_CREDENTIAL_VERIFIED',
     actor: 'ldn.staff',
-    details: 'Accounting credentials verified for LDN draw turnover',
+    details: 'Accounting credentials verified for Maguindanao draw turnover',
     severity: 'success',
   },
   {
@@ -383,7 +383,7 @@ export function unmarkDeletedUsername(username) {
 
 export function sanitizeBranchString(str) {
   if (typeof str !== 'string') return str
-  return str.replace(/Mandaue/gi, 'LDN')
+  return str.replace(/Mandaue|LDN/gi, 'Maguindanao')
 }
 
 export function getRbacUsers() {

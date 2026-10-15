@@ -95,7 +95,7 @@ export default async function handler(req, res) {
       timestamp: 'Today, 08:45 AM',
       action: 'RBAC_CREDENTIAL_VERIFIED',
       actor: 'ldn.staff',
-      details: 'Accounting credentials verified for LDN draw turnover',
+      details: 'Accounting credentials verified for Maguindanao draw turnover',
       severity: 'success',
     },
     {

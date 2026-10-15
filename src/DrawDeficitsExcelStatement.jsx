@@ -99,7 +99,7 @@ export default function DrawDeficitsExcelStatement({
   group,
   allSupervisors = [],
   selectedDate,
-  branchName = 'LDN',
+  branchName = 'Maguindanao',
 }) {
   const isConsolidated = group?.supervisor === 'ALL SUPERVISORS (CONSOLIDATED)'
 
@@ -194,7 +194,7 @@ export default function DrawDeficitsExcelStatement({
   useEffect(() => {
     let isMounted = true
     async function loadPsr() {
-      const res = await getPayoutShortagesFromSupabase(branchName || 'LDN', selectedDate)
+      const res = await getPayoutShortagesFromSupabase(branchName || 'Maguindanao', selectedDate)
       if (isMounted && res.success && res.data) {
         setPsrData(res.data)
       }

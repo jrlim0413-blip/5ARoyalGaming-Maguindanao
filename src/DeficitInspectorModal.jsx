@@ -73,7 +73,7 @@ export default function DeficitInspectorModal({
     { key: 'evening', label: '3rd Draw', schedule: '7:00 PM + 9:00 PM', times: ['7:00 PM', '9:00 PM'] },
   ],
   selectedDate,
-  branchName = 'LDN',
+  branchName = 'Maguindanao',
   selectedMunicipality = 'All Municipalities',
 }) {
   const [activeModalTab, setActiveModalTab] = useState('breakdown')

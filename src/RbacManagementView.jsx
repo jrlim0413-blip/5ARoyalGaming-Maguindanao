@@ -289,7 +289,7 @@ function SvgIcon({ name, size = 16, className = '' }) {
   )
 }
 
-export default function RbacManagementView({ currentUser, onSimulateUser, branchName = 'LDN', initialTab = 'users' }) {
+export default function RbacManagementView({ currentUser, onSimulateUser, branchName = 'Maguindanao', initialTab = 'users' }) {
   const [users, setUsers] = useState(() => getRbacUsers())
   const [roles, setRoles] = useState(() => getRbacRoles())
   const [auditLogs, setAuditLogs] = useState(() => getAuditLogs())
