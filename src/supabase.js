@@ -467,52 +467,62 @@ export async function syncCommissionSettingsFromSupabase() {
 export function subscribeToMatrixRealtime(onUpdate) {
   if (!supabase) return () => { }
 
-  let matrixChannel = supabase
-    .channel(MATRIX_REALTIME_CHANNEL)
-    .on(
-      'postgres_changes',
-      {
-        event: '*',
-        schema: 'public',
-        table: 'rbac_matrix_config',
-      },
-      () => {
-        if (typeof onUpdate === 'function') {
-          onUpdate({ type: 'table_change' })
+  const channelId = `${MATRIX_REALTIME_CHANNEL}_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`
+  let matrixChannel = null
+
+  try {
+    matrixChannel = supabase
+      .channel(channelId)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'rbac_matrix_config',
+        },
+        () => {
+          if (typeof onUpdate === 'function') {
+            onUpdate({ type: 'table_change' })
+          }
         }
-      }
-    )
-    .on(
-      'broadcast',
-      { event: 'matrix_updated' },
-      () => {
-        if (typeof onUpdate === 'function') {
-          onUpdate({ type: 'broadcast_matrix' })
+      )
+      .on(
+        'broadcast',
+        { event: 'matrix_updated' },
+        () => {
+          if (typeof onUpdate === 'function') {
+            onUpdate({ type: 'broadcast_matrix' })
+          }
         }
-      }
-    )
-    .on(
-      'broadcast',
-      { event: 'commissions_updated' },
-      () => {
-        if (typeof onUpdate === 'function') {
-          onUpdate({ type: 'broadcast_commissions' })
+      )
+      .on(
+        'broadcast',
+        { event: 'commissions_updated' },
+        () => {
+          if (typeof onUpdate === 'function') {
+            onUpdate({ type: 'broadcast_commissions' })
+          }
         }
-      }
-    )
-    .subscribe((status) => {
-      if (status === 'SUBSCRIBED') {
-        realtimeChannelInstance = matrixChannel
-      }
-    })
+      )
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          realtimeChannelInstance = matrixChannel
+        }
+      })
+  } catch (err) {
+    console.warn('Realtime subscription error:', err)
+  }
 
   return () => {
     if (matrixChannel) {
       try {
         matrixChannel.unsubscribe()
+        supabase.removeChannel(matrixChannel)
       } catch { }
+      if (realtimeChannelInstance === matrixChannel) {
+        realtimeChannelInstance = null
+      }
       matrixChannel = null
-      realtimeChannelInstance = null
     }
   }
 }
