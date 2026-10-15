@@ -4379,6 +4379,590 @@ body[data-theme="dark"] {
   font-weight: 700;
 }
 
+[data-theme="dark"] {
+  --ink: #f8fafc;
+  --muted: #94a3b8;
+  --line: #1e293b;
+  --blue: #60a5fa;
+  --pale-blue: #172338;
+}
+
+[data-theme="dark"] body,
+[data-theme="dark"] .app-shell {
+  background: #0b1120;
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .sidebar {
+  background: #0f172a;
+  border-right-color: #1e293b;
+}
+
+[data-theme="dark"] .topbar {
+  background: #0f172a;
+  border-bottom-color: #1e293b;
+}
+
+[data-theme="dark"] .topbar h1,
+[data-theme="dark"] .welcome-row h2,
+[data-theme="dark"] .panel-heading h2 {
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .brand-title-wrap strong {
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .nav-item {
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .nav-item:hover,
+[data-theme="dark"] .nav-item.active {
+  color: #60a5fa;
+  background: #172338;
+}
+
+[data-theme="dark"] .sidebar-footer {
+  border-top-color: #1e293b;
+}
+
+[data-theme="dark"] .sidebar-footer strong {
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .report-date-bar {
+  background: #0f172a;
+  border-color: #1e293b;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+[data-theme="dark"] .date-presets {
+  background: #172338;
+}
+
+[data-theme="dark"] .preset-btn {
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .preset-btn:hover:not(:disabled) {
+  color: #f8fafc;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="dark"] .preset-btn.active {
+  background: #24334a;
+  color: #60a5fa;
+}
+
+[data-theme="dark"] .date-stepper-wrap {
+  background: #172338;
+  border-color: #2a3b53;
+}
+
+[data-theme="dark"] .stepper-btn {
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .stepper-btn:hover:not(:disabled) {
+  background: #24334a;
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .date-input-group {
+  border-left-color: #24334a;
+  border-right-color: #24334a;
+}
+
+[data-theme="dark"] .date-input-group input[type="date"] {
+  color: #f8fafc;
+  color-scheme: dark;
+}
+
+[data-theme="dark"] .date-display-label {
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .refresh-button,
+[data-theme="dark"] .refresh-btn-bar {
+  background: #172338;
+  border-color: #2a3b53;
+  color: #cbd5e1;
+}
+
+[data-theme="dark"] .refresh-button:hover:not(:disabled),
+[data-theme="dark"] .refresh-btn-bar:hover:not(:disabled) {
+  border-color: #3b82f6;
+  color: #60a5fa;
+  background: #1e293b;
+}
+
+[data-theme="dark"] .metric-card {
+  background: #0f172a;
+  border-color: #1e293b;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="dark"] .metric-card strong {
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .metric-icon {
+  background: #172338;
+  color: #60a5fa;
+}
+
+[data-theme="dark"] .draw-summary {
+  background: #0f172a;
+  border-color: #1e293b;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+}
+
+[data-theme="dark"] .draw-summary-heading {
+  border-bottom-color: #1e293b;
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .draw-summary-card {
+  border-right-color: #1e293b;
+}
+
+[data-theme="dark"] .draw-summary-card.draw-morning {
+  background: linear-gradient(180deg, #0e1e38 0%, #0a1527 100%);
+}
+
+[data-theme="dark"] .draw-summary-card.draw-afternoon {
+  background: linear-gradient(180deg, #2a1f0c 0%, #1e1507 100%);
+}
+
+[data-theme="dark"] .draw-summary-card.draw-evening {
+  background: linear-gradient(180deg, #0b291a 0%, #071c12 100%);
+}
+
+[data-theme="dark"] .draw-card-header span {
+  color: #cbd5e1;
+}
+
+[data-theme="dark"] .draw-card-values {
+  border-top-color: rgba(255, 255, 255, 0.12);
+}
+
+[data-theme="dark"] .draw-value-col .draw-gross-num {
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .draw-value-col .draw-hits-num {
+  color: #f87171;
+}
+
+[data-theme="dark"] .summary-total-chip.gross-chip {
+  background: rgba(59, 130, 246, 0.15);
+  border-color: rgba(59, 130, 246, 0.3);
+  color: #93c5fd;
+}
+
+[data-theme="dark"] .summary-total-chip.hits-chip {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: #fca5a5;
+}
+
+[data-theme="dark"] .summary-total-chip.commission-chip {
+  background: rgba(168, 85, 247, 0.15);
+  border-color: rgba(168, 85, 247, 0.3);
+  color: #d8b4fe;
+}
+
+[data-theme="dark"] .summary-total-chip.net-sales-chip {
+  background: rgba(249, 115, 22, 0.15);
+  border-color: rgba(249, 115, 22, 0.3);
+  color: #fdba74;
+}
+
+[data-theme="dark"] .draw-result-card {
+  background: #0f172a;
+  border-color: #1e293b;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+}
+
+[data-theme="dark"] .draw-result-card.card-local {
+  background: #0c182b;
+  border-color: #1e3a5f;
+}
+
+[data-theme="dark"] .draw-result-card.card-pcso {
+  background: #18112b;
+  border-color: #3b2260;
+}
+
+[data-theme="dark"] .draw-card-top-bar {
+  border-bottom-color: #1e293b;
+}
+
+[data-theme="dark"] .draw-time-tag {
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .draw-hero-winner-box {
+  background: #070d18;
+  border-color: #1e293b;
+}
+
+[data-theme="dark"] .game-type-caption {
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .stat-pod {
+  background: #070d18;
+  border-color: #1e293b;
+}
+
+[data-theme="dark"] .stat-pod .pod-val.pod-gross {
+  color: #60a5fa;
+}
+
+[data-theme="dark"] .stat-pod .pod-val.pod-hits {
+  color: #f87171;
+}
+
+[data-theme="dark"] .stat-pod .pod-val.pod-zero {
+  color: #64748b;
+}
+
+[data-theme="dark"] .draw-kabig-highlight-row {
+  border-top-color: #1e293b;
+}
+
+[data-theme="dark"] .report-panel {
+  background: #0f172a;
+  border-color: #1e293b;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+}
+
+[data-theme="dark"] .panel-heading {
+  border-bottom-color: #1e293b;
+}
+
+[data-theme="dark"] .table-wrap table {
+  background: #0f172a;
+  color: #e2e8f0;
+}
+
+[data-theme="dark"] table th {
+  background: #172338;
+  border-bottom-color: #24334a;
+  color: #94a3b8;
+}
+
+[data-theme="dark"] table td {
+  border-bottom-color: #1e293b;
+  color: #cbd5e1;
+}
+
+[data-theme="dark"] table tbody tr:hover {
+  background: rgba(51, 65, 85, 0.35);
+}
+
+[data-theme="dark"] .matrix-table {
+  background: #0f172a;
+}
+
+[data-theme="dark"] .matrix-table th {
+  background: #172338;
+  border-color: #24334a;
+  color: #cbd5e1;
+}
+
+[data-theme="dark"] .matrix-table td {
+  border-color: #1e293b;
+  color: #cbd5e1;
+}
+
+[data-theme="dark"] .matrix-table .agent-header {
+  background: #172338 !important;
+  color: #f8fafc !important;
+  border-right-color: #24334a !important;
+}
+
+[data-theme="dark"] .matrix-table .agent-name-cell,
+[data-theme="dark"] .matrix-table td:first-child {
+  background: #0f172a !important;
+  color: #f8fafc !important;
+  border-right-color: #24334a !important;
+}
+
+[data-theme="dark"] .matrix-table tbody tr:hover td.agent-name-cell,
+[data-theme="dark"] .matrix-table tbody tr:hover td:first-child {
+  background: #17253a !important;
+}
+
+[data-theme="dark"] .matrix-table .total-row td.agent-name-cell,
+[data-theme="dark"] .matrix-table .total-row td:first-child {
+  background: #172338 !important;
+  color: #38bdf8 !important;
+  border-right-color: #334155 !important;
+}
+
+[data-theme="dark"] .matrix-table .total-row td {
+  background: #172338 !important;
+  border-top: 1.5px solid #334155 !important;
+  color: #f8fafc !important;
+}
+
+[data-theme="dark"] .matrix-table .draw-morning {
+  background: rgba(30, 58, 138, 0.16);
+}
+
+[data-theme="dark"] .matrix-table th.draw-morning {
+  background: #132448;
+  color: #93c5fd;
+}
+
+[data-theme="dark"] .matrix-table tbody tr:hover .draw-morning {
+  background: rgba(30, 58, 138, 0.3);
+}
+
+[data-theme="dark"] .matrix-table .total-row .draw-morning {
+  background: #172d54;
+  color: #93c5fd;
+}
+
+[data-theme="dark"] .matrix-table .draw-afternoon {
+  background: rgba(180, 83, 9, 0.16);
+}
+
+[data-theme="dark"] .matrix-table th.draw-afternoon {
+  background: #3d240a;
+  color: #fde68a;
+}
+
+[data-theme="dark"] .matrix-table tbody tr:hover .draw-afternoon {
+  background: rgba(180, 83, 9, 0.3);
+}
+
+[data-theme="dark"] .matrix-table .total-row .draw-afternoon {
+  background: #4a2d0d;
+  color: #fde68a;
+}
+
+[data-theme="dark"] .matrix-table .draw-evening {
+  background: rgba(22, 101, 52, 0.16);
+}
+
+[data-theme="dark"] .matrix-table th.draw-evening {
+  background: #0b331f;
+  color: #86efac;
+}
+
+[data-theme="dark"] .matrix-table tbody tr:hover .draw-evening {
+  background: rgba(22, 101, 52, 0.3);
+}
+
+[data-theme="dark"] .matrix-table .total-row .draw-evening {
+  background: #0e3d25;
+  color: #86efac;
+}
+
+[data-theme="dark"] .matrix-table .carryover-cell {
+  background: rgba(234, 179, 8, 0.12);
+  color: #fef08a;
+}
+
+[data-theme="dark"] .matrix-table .net-cell {
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .matrix-table .draw-commission {
+  background: rgba(168, 85, 247, 0.16);
+  color: #d8b4fe;
+}
+
+[data-theme="dark"] .matrix-table th.draw-commission {
+  background: #351352;
+  color: #d8b4fe;
+}
+
+[data-theme="dark"] .matrix-table th.draw-commission small {
+  color: #c084fc;
+}
+
+[data-theme="dark"] .matrix-table .draw-net-sales {
+  background: rgba(249, 115, 22, 0.16);
+  color: #fdba74;
+  border-left-color: #4a2311;
+  border-right-color: #4a2311;
+}
+
+[data-theme="dark"] .matrix-table th.draw-net-sales {
+  background: #4a1f0c;
+  color: #fdba74;
+}
+
+[data-theme="dark"] .matrix-table th.draw-net-sales small {
+  color: #fb923c;
+}
+
+[data-theme="dark"] .matrix-table td.draw-net-sales strong {
+  color: #fdba74;
+}
+
+[data-theme="dark"] .matrix-table .total-row .draw-net-sales {
+  background: #5c2710;
+  color: #ffedd5;
+}
+
+[data-theme="dark"] .matrix-table .draw-overall {
+  background: rgba(30, 41, 59, 0.4);
+  color: #f1f5f9;
+}
+
+[data-theme="dark"] .matrix-table th.draw-overall {
+  background: #172338;
+  color: #cbd5e1;
+}
+
+[data-theme="dark"] .matrix-table th.draw-separator-col,
+[data-theme="dark"] .matrix-table td.draw-separator-cell {
+  background: #0b1120 !important;
+  border-left: 1px solid #1e293b !important;
+  border-right: 1px solid #1e293b !important;
+}
+
+[data-theme="dark"] .matrix-table .negative-value {
+  color: #f87171 !important;
+  background: rgba(239, 68, 68, 0.22) !important;
+}
+
+[data-theme="dark"] .supervisor-group {
+  background: #0f172a;
+  border-color: #1e293b;
+}
+
+[data-theme="dark"] .supervisor-heading {
+  background: #172338;
+  border-bottom-color: #24334a;
+}
+
+[data-theme="dark"] .supervisor-heading strong {
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .agent-group {
+  background: #0b1120;
+  border-color: #1e293b;
+}
+
+[data-theme="dark"] .agent-heading {
+  background: #111a2a;
+  border-bottom-color: #1e293b;
+}
+
+[data-theme="dark"] .agent-heading strong {
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .filter-pill-btn {
+  background: #172338;
+  border-color: #2a3b53;
+  color: #cbd5e1;
+}
+
+[data-theme="dark"] .filter-pill-btn:hover {
+  border-color: #3b82f6;
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .filter-pill-btn.active {
+  background: #1e3a8a;
+  border-color: #3b82f6;
+  color: #bfdbfe;
+}
+
+[data-theme="dark"] .filter-count-badge {
+  background: #24334a;
+  color: #cbd5e1;
+}
+
+[data-theme="dark"] .supervisor-select-group {
+  background: #172338;
+  border-color: #2a3b53;
+  color: #cbd5e1;
+}
+
+[data-theme="dark"] .supervisor-filter-select {
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .supervisor-filter-select option {
+  background: #0f172a;
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .deficit-watch-card {
+  background: #0f172a;
+  border-color: #1e293b;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+}
+
+[data-theme="dark"] .deficit-watch-row {
+  border-bottom-color: #1e293b;
+}
+
+[data-theme="dark"] .deficit-watch-agent {
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .deficit-view-all-action-btn {
+  background: #172338;
+  border-color: #2a3b53;
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .deficit-view-all-action-btn:hover {
+  background: #24334a;
+}
+
+[data-theme="dark"] .raw-feed-accordion {
+  background: #0f172a;
+  border-color: #1e293b;
+}
+
+[data-theme="dark"] .raw-feed-toggle-btn {
+  background: #172338;
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .access-restricted-card {
+  background: #0f172a;
+  border-color: #1e293b;
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .access-restricted-card h2 {
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .restricted-perm-box {
+  background: #070d18;
+  border-color: #1e293b;
+}
+
+[data-theme="dark"] .source-label code {
+  color: #93c5fd;
+  background: #172338;
+}
+
+[data-theme="dark"] .status-pill {
+  color: #6ee7b7;
+  background: rgba(16, 185, 129, 0.15);
+}
+
+[data-theme="dark"] .breakdown-note {
+  background: rgba(180, 83, 9, 0.15);
+  border-color: rgba(180, 83, 9, 0.35);
+  color: #fde68a;
+}
+
 [data-theme="dark"] .topbar-muni-pill {
   background: rgba(59, 130, 246, 0.15);
   border-color: rgba(59, 130, 246, 0.3);

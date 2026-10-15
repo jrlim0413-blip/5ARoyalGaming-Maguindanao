@@ -1713,3 +1713,340 @@
   margin: 3px auto 0;
 }
 
+[data-theme="dark"] .rbac-management-view {
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .rbac-header-card {
+  background: #0f172a;
+  border-color: #1e293b;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="dark"] .rbac-header-titles h2 {
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .rbac-header-titles p {
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .rbac-secondary-btn {
+  background: #172338;
+  border-color: #2a3b53;
+  color: #cbd5e1;
+}
+
+[data-theme="dark"] .rbac-secondary-btn:hover {
+  background: #24334a;
+  color: #f8fafc;
+  border-color: #3b82f6;
+}
+
+[data-theme="dark"] .rbac-simulator-bar {
+  background: #0c182b;
+  border-color: #1e3a5f;
+}
+
+[data-theme="dark"] .simulator-title {
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .simulator-current-user strong {
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .sim-user-switch-btn {
+  background: #172338;
+  border-color: #2a3b53;
+  color: #cbd5e1;
+}
+
+[data-theme="dark"] .sim-user-switch-btn:hover {
+  background: #24334a;
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .sim-user-switch-btn.active {
+  background: #1e3a8a;
+  border-color: #3b82f6;
+  color: #93c5fd;
+}
+
+[data-theme="dark"] .rbac-nav-tabs-bar {
+  background: #0f172a;
+  border-color: #1e293b;
+}
+
+[data-theme="dark"] .rbac-tab-btn {
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .rbac-tab-btn:hover {
+  color: #f8fafc;
+  background: #172338;
+}
+
+[data-theme="dark"] .rbac-tab-btn.active {
+  color: #60a5fa;
+  background: #172338;
+  border-bottom-color: #3b82f6;
+}
+
+[data-theme="dark"] .rbac-count-badge {
+  background: #24334a;
+  color: #cbd5e1;
+}
+
+[data-theme="dark"] .rbac-search-box {
+  background: #172338;
+  border-color: #2a3b53;
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .rbac-search-box input {
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .rbac-search-box input::placeholder {
+  color: #64748b;
+}
+
+[data-theme="dark"] .rbac-role-filter-select {
+  background: #172338;
+  border-color: #2a3b53;
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .rbac-role-filter-select option {
+  background: #0f172a;
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .rbac-user-card {
+  background: #0f172a;
+  border-color: #1e293b;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="dark"] .rbac-user-card:hover {
+  border-color: #3b82f6;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+
+[data-theme="dark"] .rbac-user-card.is-active-session {
+  background: #0c1a32;
+  border-color: #3b82f6;
+}
+
+[data-theme="dark"] .rbac-user-card.is-suspended {
+  background: #14161f;
+  opacity: 0.7;
+}
+
+[data-theme="dark"] .rbac-user-card-header {
+  border-color: #1e293b;
+}
+
+[data-theme="dark"] .rbac-user-fullname {
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .rbac-user-username {
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .rbac-branch-pill {
+  background: #172338;
+  border-color: #2a3b53;
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .rbac-user-card-footer {
+  background: #090e18;
+  border-color: #1e293b;
+}
+
+[data-theme="dark"] .rbac-simulate-user-btn {
+  background: #172338;
+  border-color: #2a3b53;
+  color: #cbd5e1;
+}
+
+[data-theme="dark"] .rbac-simulate-user-btn:hover {
+  background: #24334a;
+  color: #60a5fa;
+}
+
+[data-theme="dark"] .rbac-icon-btn {
+  background: #172338;
+  border-color: #2a3b53;
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .rbac-icon-btn:hover {
+  background: #24334a;
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .rbac-empty-state {
+  background: #0f172a;
+  border-color: #1e293b;
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .rbac-matrix-container {
+  background: #0f172a;
+  border-color: #1e293b;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="dark"] .rbac-matrix-header-box {
+  border-color: #1e293b;
+}
+
+[data-theme="dark"] .rbac-matrix-header-box h3 {
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .rbac-matrix-header-box p {
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .rbac-matrix-mode-bar {
+  background: #090e18;
+  border-color: #1e293b;
+}
+
+[data-theme="dark"] .matrix-mode-btn {
+  background: #172338;
+  border-color: #2a3b53;
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .matrix-mode-btn.active {
+  background: #1e3a8a;
+  border-color: #3b82f6;
+  color: #93c5fd;
+}
+
+[data-theme="dark"] .matrix-mode-hint {
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .rbac-matrix-table-wrap {
+  border-color: #1e293b;
+}
+
+[data-theme="dark"] .rbac-matrix-table {
+  background: #0f172a;
+  color: #e2e8f0;
+}
+
+[data-theme="dark"] .rbac-matrix-table th {
+  background: #172338;
+  border-color: #24334a;
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .rbac-matrix-table td {
+  border-color: #1e293b;
+  color: #e2e8f0;
+}
+
+[data-theme="dark"] .perm-name {
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .perm-desc {
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .section-divider-cell {
+  background: #090e18;
+  border-color: #1e293b;
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .rbac-matrix-table tr:hover td {
+  background: rgba(51, 65, 85, 0.25);
+}
+
+[data-theme="dark"] .role-assigned-accounts-list {
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .role-user-tag {
+  background: #172338;
+  border-color: #2a3b53;
+  color: #cbd5e1;
+}
+
+[data-theme="dark"] .rbac-audit-container {
+  background: #0f172a;
+  border-color: #1e293b;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="dark"] .rbac-audit-header-box {
+  border-color: #1e293b;
+}
+
+[data-theme="dark"] .rbac-audit-header-box h3 {
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .rbac-audit-header-box p {
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .rbac-log-card {
+  background: #090e18;
+  border-color: #1e293b;
+}
+
+[data-theme="dark"] .rbac-log-timestamp .log-time {
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .rbac-log-timestamp .log-actor {
+  color: #60a5fa;
+}
+
+[data-theme="dark"] .rbac-log-details {
+  color: #e2e8f0;
+}
+
+[data-theme="dark"] .rbac-modal-window {
+  background: #0f172a;
+  border-color: #334155;
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .rbac-modal-header {
+  border-color: #1e293b;
+}
+
+[data-theme="dark"] .rbac-modal-header h3 {
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .rbac-modal-header p {
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .rbac-form-group label {
+  color: #cbd5e1;
+}
+
+[data-theme="dark"] .rbac-form-group input,
+[data-theme="dark"] .rbac-form-group select {
+  background: #172338;
+  border-color: #2a3b53;
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .rbac-modal-footer {
+  border-color: #1e293b;
+}
+

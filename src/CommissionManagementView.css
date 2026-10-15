@@ -859,3 +859,190 @@
   color: #94a3b8;
   font-style: italic;
 }
+
+[data-theme="dark"] .comm-management-view {
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .comm-header-card {
+  background: #0f172a;
+  border-color: #1e293b;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="dark"] .comm-title-wrap h2 {
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .comm-title-wrap p {
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .comm-stat-card {
+  background: #0f172a;
+  border-color: #1e293b;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="dark"] .comm-stat-val {
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .comm-stat-sub {
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .comm-stat-chip {
+  background: #172338;
+  border-color: #2a3b53;
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .comm-table-card {
+  background: #0f172a;
+  border-color: #1e293b;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="dark"] .comm-table-toolbar {
+  border-bottom-color: #1e293b;
+}
+
+[data-theme="dark"] .comm-search-input {
+  background: #172338;
+  border-color: #2a3b53;
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .spvr-rate-card {
+  background: #0f172a;
+  border-color: #1e293b;
+}
+
+[data-theme="dark"] .spvr-header-row {
+  background: #0f172a;
+  border-bottom-color: #1e293b;
+}
+
+[data-theme="dark"] .spvr-header-row:hover {
+  background: #131f33;
+}
+
+[data-theme="dark"] .spvr-name {
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .spvr-agent-count-chip {
+  background: #172338;
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .spvr-default-rate-badge {
+  background: #172338;
+  border-color: #2a3b53;
+}
+
+[data-theme="dark"] .rate-badge-label {
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .rate-value-display {
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .edit-rate-trigger-btn {
+  background: #1e3a8a;
+  border-color: #3b82f6;
+  color: #93c5fd;
+}
+
+[data-theme="dark"] .edit-rate-trigger-btn:hover {
+  background: #2563eb;
+  color: #ffffff;
+}
+
+[data-theme="dark"] .preset-chip {
+  background: #172338;
+  border-color: #2a3b53;
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .preset-chip:hover {
+  background: #24334a;
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .preset-chip.active {
+  background: #3b82f6;
+  border-color: #3b82f6;
+  color: #ffffff;
+}
+
+[data-theme="dark"] .spvr-agents-table-wrap {
+  border-top-color: #1e293b;
+}
+
+[data-theme="dark"] .spvr-agents-table {
+  background: #0f172a;
+}
+
+[data-theme="dark"] .spvr-agents-table th {
+  background: #172338;
+  border-bottom-color: #24334a;
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .spvr-agents-table td {
+  border-bottom-color: #1e293b;
+  color: #e2e8f0;
+}
+
+[data-theme="dark"] .agent-rate-row:hover {
+  background: rgba(51, 65, 85, 0.35);
+}
+
+[data-theme="dark"] .agent-rate-row.has-override-row {
+  background: rgba(245, 158, 11, 0.08);
+}
+
+[data-theme="dark"] .agent-display-name {
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .amount-num {
+  color: #e2e8f0;
+}
+
+[data-theme="dark"] .amount-commission-num {
+  color: #34d399;
+}
+
+[data-theme="dark"] .inline-rate-input {
+  background: #172338;
+  border-color: #3b82f6;
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .inline-cancel-btn {
+  background: #172338;
+  border-color: #2a3b53;
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .comm-drawer-window {
+  background: #0f172a;
+  border-color: #334155;
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .comm-drawer-header {
+  border-bottom-color: #1e293b;
+}
+
+[data-theme="dark"] .comm-drawer-header h3 {
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .comm-drawer-footer {
+  border-top-color: #1e293b;
+}
