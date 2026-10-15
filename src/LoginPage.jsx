@@ -8,6 +8,7 @@ import {
   signInWithSupabase,
   signUpWithSupabase,
   formatSupabaseEmail,
+  createCloudSession,
 } from './supabase'
 import './LoginPage.css'
 
@@ -311,7 +312,7 @@ export default function LoginPage({ onLoginSuccess, branchName = 'LDN' }) {
 
       if (!loginSuccess) {
         try {
-          const loginUrl = new URL('https://stl-ldn-api.com/api/accountant/login')
+          const loginUrl = (typeof window !== 'undefined' && window.location.protocol.startsWith('http')) ? new URL('/api/proxy?action=login', window.location.origin) : new URL('https://stl-ldn-api.com/api/accountant/login')
           const res = await fetch(loginUrl, {
             method: 'POST',
             headers: {
@@ -351,14 +352,7 @@ export default function LoginPage({ onLoginSuccess, branchName = 'LDN' }) {
       if (loginSuccess && authUser) {
         setLoginSuccessState(true)
 
-        sessionStorage.setItem('luckybet_user', JSON.stringify(authUser))
-        if (authUser.token) {
-          sessionStorage.setItem('luckybet_token', authUser.token)
-        }
-        try {
-          localStorage.removeItem('luckybet_user')
-          localStorage.removeItem('luckybet_token')
-        } catch {}
+        await createCloudSession(authUser)
 
         setTimeout(() => {
           if (typeof onLoginSuccess === 'function') {

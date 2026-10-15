@@ -1,17 +1,13 @@
-# Dependencies
 node_modules/
 
-# Environment variables (keep secrets safe)
 .env*.local
 .env
 .env.local
 supabase-rbac-schema.sql
 complete-database-schema.sql
-# Logs
 *.log
 logs/
 
-# Editor / OS
 .vscode/
 .idea/
 .DS_Store

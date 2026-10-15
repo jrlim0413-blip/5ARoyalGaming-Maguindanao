@@ -16,6 +16,12 @@ import {
   syncCommissionSettingsFromSupabase,
   subscribeToMatrixRealtime,
   isSupabaseConfigured,
+  bootFromCloud,
+  getSessionTokenFromUrl,
+  getCloudSession,
+  createCloudSession,
+  updateCloudSession,
+  revokeCloudSession,
 } from './supabase'
 import {
   getRbacRoles,
@@ -2028,74 +2034,31 @@ function App() {
   const [reportViewMode, setReportViewMode] = useState('matrix')
   const [statementModalGroup, setStatementModalGroup] = useState(null)
   const [isDeficitModalOpen, setIsDeficitModalOpen] = useState(false)
-  const [selectedMunicipality, setSelectedMunicipality] = useState(() => {
-    try {
-      const saved = sessionStorage.getItem('luckybet_user')
-      if (saved) {
-        const parsed = JSON.parse(saved)
-        if (parsed?.assignedMunicipality && parsed.assignedMunicipality !== ALL_MUNICIPALITIES) {
-          return parsed.assignedMunicipality
-        }
-        const fromBranch = resolveMunicipalityFromBranch(parsed?.branch)
-        if (fromBranch && fromBranch !== ALL_MUNICIPALITIES) {
-          return fromBranch
-        }
-      }
-    } catch {}
-    return ALL_MUNICIPALITIES
-  })
-  const [currentUser, setCurrentUser] = useState(() => {
-    try {
-      const saved = sessionStorage.getItem('luckybet_user')
-      if (!saved) return null
-      const parsed = JSON.parse(saved)
-      if (parsed) {
-        if (parsed.branch) parsed.branch = parsed.branch.replace(/Mandaue/gi, 'LDN')
-        if (parsed.username) parsed.username = parsed.username.replace(/^mandaue\.staff$/i, 'ldn.staff').replace(/^teller\.mandaue$/i, 'teller.ldn')
-        const rbacUsers = getRbacUsers()
-        const match = rbacUsers.find((u) => u.username?.toLowerCase() === parsed.username?.toLowerCase())
-        const defUser = DEFAULT_USERS.find((d) => d.username?.toLowerCase() === parsed.username?.toLowerCase())
-
-        let resolvedMuni = parsed.assignedMunicipality || match?.assignedMunicipality || defUser?.assignedMunicipality
-        if (!resolvedMuni || resolvedMuni === ALL_MUNICIPALITIES) {
-          if (defUser && defUser.assignedMunicipality && defUser.assignedMunicipality !== ALL_MUNICIPALITIES) {
-            resolvedMuni = defUser.assignedMunicipality
-          } else {
-            const fromBranch = resolveMunicipalityFromBranch(parsed.branch || match?.branch)
-            if (fromBranch && fromBranch !== ALL_MUNICIPALITIES) {
-              resolvedMuni = fromBranch
-            }
-          }
-        }
-        parsed.assignedMunicipality = resolvedMuni || ALL_MUNICIPALITIES
-        sessionStorage.setItem('luckybet_user', JSON.stringify(parsed))
-      }
-      return parsed
-    } catch {
-      return null
-    }
-  })
+  const [selectedMunicipality, setSelectedMunicipality] = useState(ALL_MUNICIPALITIES)
+  const [currentUser, setCurrentUser] = useState(null)
   const [rbacRoles, setRbacRoles] = useState(() => getRbacRoles())
   const [rbacRev, setRbacRev] = useState(0)
   const [commissionSettings, setCommissionSettings] = useState(() => loadCommissionSettings())
 
   useEffect(() => {
-    try {
-      [
-        'luckybet_user',
-        'luckybet_token',
-        'luckybet_rbac_users',
-        'luckybet_rbac_roles',
-        'luckybet_rbac_user_perms',
-        'luckybet_rbac_deleted_users',
-        'luckybet_rbac_audit_logs',
-        'luckybet_commission_settings',
-        'luckybet_theme',
-        'luckybet_custom_print_browser_settings',
-      ].forEach((key) => {
-        localStorage.removeItem(key)
-      })
-    } catch {}
+    const sessionToken = getSessionTokenFromUrl()
+    bootFromCloud(sessionToken).then((data) => {
+      if (data?.sessionUser) {
+        setCurrentUser(data.sessionUser)
+        if (data.sessionUser.assignedMunicipality) {
+          setSelectedMunicipality(data.sessionUser.assignedMunicipality)
+        }
+      } else if (sessionToken) {
+        getCloudSession().then((u) => {
+          if (u) {
+            setCurrentUser(u)
+            if (u.assignedMunicipality) setSelectedMunicipality(u.assignedMunicipality)
+          }
+        }).catch(() => {})
+      }
+      setRbacRoles(getRbacRoles())
+      setCommissionSettings(loadCommissionSettings())
+    }).catch(() => {})
 
     const handleCommissionChange = (e) => {
       if (e?.detail) setCommissionSettings(e.detail)
@@ -2107,11 +2070,9 @@ function App() {
 
   const [isDarkMode, setIsDarkMode] = useState(() => {
     try {
-      const saved = sessionStorage.getItem('luckybet_theme')
-      if (saved) return saved === 'dark'
-      return window.matchMedia('(prefers-color-scheme: dark)').matches
+      return typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches
     } catch {
-      return false
+      return true
     }
   })
 
@@ -2119,9 +2080,6 @@ function App() {
     const themeVal = isDarkMode ? 'dark' : 'light'
     document.documentElement.setAttribute('data-theme', themeVal)
     document.body.setAttribute('data-theme', themeVal)
-    try {
-      sessionStorage.setItem('luckybet_theme', themeVal)
-    } catch {}
   }, [isDarkMode])
 
   const handleSwitchUser = (targetUser) => {
@@ -2159,7 +2117,7 @@ function App() {
       simulatedFromAdmin: !isTargetAdmin,
     }
     setCurrentUser(newUser)
-    try { sessionStorage.setItem('luckybet_user', JSON.stringify(newUser)) } catch {}
+    updateCloudSession(newUser.token, newUser).catch(() => {})
     setSelectedMunicipality(resolvedMuni)
   }
 
@@ -2182,7 +2140,7 @@ function App() {
       simulatedFromAdmin: false,
     }
     setCurrentUser(restored)
-    try { sessionStorage.setItem('luckybet_user', JSON.stringify(restored)) } catch {}
+    updateCloudSession(restored.token, restored).catch(() => {})
     setSelectedMunicipality(ALL_MUNICIPALITIES)
   }
 
@@ -2196,7 +2154,7 @@ function App() {
         const match = rbacUsers.find((u) => u.username?.toLowerCase() === prev.username?.toLowerCase())
         if (match && match.assignedMunicipality && match.assignedMunicipality !== prev.assignedMunicipality) {
           const updated = { ...prev, assignedMunicipality: match.assignedMunicipality }
-          try { sessionStorage.setItem('luckybet_user', JSON.stringify(updated)) } catch {}
+          updateCloudSession(updated.token, updated).catch(() => {})
           return updated
         }
         return prev
@@ -2269,18 +2227,63 @@ function App() {
   }, [activeView, can, currentUser])
 
   const handleLogout = () => {
+    revokeCloudSession(currentUser?.token).catch(() => {})
     signOutFromSupabase().catch(() => {})
-    try {
-      localStorage.removeItem('luckybet_user')
-      localStorage.removeItem('luckybet_token')
-    } catch {}
-    sessionStorage.removeItem('luckybet_user')
-    sessionStorage.removeItem('luckybet_token')
     setCurrentUser(null)
   }
 
   const isToday = selectedDate === getCurrentDate()
   const isYesterday = selectedDate === getYesterdayDate()
+
+  const fetchProxiedReport = async (type, params) => {
+    if (typeof window !== 'undefined' && window.location.protocol.startsWith('http')) {
+      try {
+        const pUrl = new URL('/api/proxy', window.location.origin)
+        pUrl.searchParams.set('type', type)
+        Object.entries(params).forEach(([k, v]) => {
+          if (v !== undefined && v !== null) pUrl.searchParams.set(k, v)
+        })
+        const pRes = await fetch(pUrl)
+        if (pRes.ok) {
+          return await pRes.json()
+        }
+      } catch (e) {
+        console.warn('Proxy report error, falling back:', e)
+      }
+    }
+    const isDummyToken = (t) => !t || t.startsWith('rbac-token') || t.startsWith('local-auth')
+    const effectiveToken = authorization || (!isDummyToken(currentUser?.token) ? currentUser?.token : '')
+    const headers = effectiveToken
+      ? { Authorization: `Bearer ${effectiveToken}`, Accept: 'application/json' }
+      : { Accept: 'application/json' }
+
+    let fallbackUrl = ''
+    if (type === 'overall') {
+      const u = new URL(overallApiUrl)
+      u.searchParams.set('from', params.from)
+      u.searchParams.set('to', params.to)
+      fallbackUrl = u.toString()
+    } else if (type === 'draw') {
+      const u = new URL(drawApiUrl)
+      u.searchParams.set('drawId', params.drawId)
+      u.searchParams.set('from', params.from)
+      u.searchParams.set('to', params.to)
+      fallbackUrl = u.toString()
+    } else if (type === 'supervisor') {
+      const u = new URL(supervisorApiUrl)
+      u.searchParams.set('from', params.from)
+      u.searchParams.set('to', params.to)
+      fallbackUrl = u.toString()
+    } else if (type === 'teller') {
+      const u = new URL(tellerApiUrl)
+      u.searchParams.set('from', params.from)
+      u.searchParams.set('to', params.to)
+      fallbackUrl = u.toString()
+    }
+    const fRes = await fetch(fallbackUrl, { headers })
+    if (!fRes.ok) throw new Error(`Request failed (${fRes.status})`)
+    return await fRes.json()
+  }
 
   const loadReport = useCallback(async (targetDate = selectedDate) => {
     const queryDate = targetDate || selectedDate || getCurrentDate()
@@ -2288,25 +2291,14 @@ function App() {
     setError('')
 
     try {
-      const isDummyToken = (t) => !t || t.startsWith('rbac-token') || t.startsWith('local-auth')
-      const effectiveToken = authorization || (!isDummyToken(currentUser?.token) ? currentUser?.token : '')
-      const headers = effectiveToken
-        ? { Authorization: `Bearer ${effectiveToken}`, Accept: 'application/json' }
-        : { Accept: 'application/json' }
-
       let overallData = []
       let dynamicDrawIds = []
 
       if (overallApiUrl) {
         try {
-          const overallUrl = new URL(overallApiUrl)
-          overallUrl.searchParams.set('from', queryDate)
-          overallUrl.searchParams.set('to', getNextDate(queryDate))
-          const overallRes = await fetch(overallUrl, { headers })
-          if (overallRes.ok) {
-            overallData = normalizeRows(await overallRes.json())
-            dynamicDrawIds = overallData.map((d) => d?.id).filter(Boolean)
-          }
+          const overallDataRaw = await fetchProxiedReport('overall', { from: queryDate, to: getNextDate(queryDate) })
+          overallData = normalizeRows(overallDataRaw)
+          dynamicDrawIds = overallData.map((d) => d?.id).filter(Boolean)
         } catch (fetchDrawsError) {
           console.warn('Unable to fetch dynamic draw IDs from overallApiUrl:', fetchDrawsError)
         }
@@ -2323,22 +2315,13 @@ function App() {
       if (drawApiUrl && targetDrawIds.length > 0) {
         const [responses, supervisorResponse] = await Promise.all([
           Promise.all(targetDrawIds.map(async (drawId) => {
-            const requestUrl = new URL(drawApiUrl)
-            requestUrl.searchParams.set('drawId', drawId)
-            requestUrl.searchParams.set('from', queryDate)
-            requestUrl.searchParams.set('to', getNextDate(queryDate))
-            const response = await fetch(requestUrl, { headers })
-            if (!response.ok) throw new Error(`Unable to load draw ${drawId} (${response.status})`)
-            return normalizeRows(await response.json())
+            const drawData = await fetchProxiedReport('draw', { drawId, from: queryDate, to: getNextDate(queryDate) })
+            return normalizeRows(drawData)
           })),
           supervisorApiUrl
             ? (async () => {
-                const requestUrl = new URL(supervisorApiUrl)
-                requestUrl.searchParams.set('from', queryDate)
-                requestUrl.searchParams.set('to', getNextDate(queryDate))
-                const response = await fetch(requestUrl, { headers })
-                if (!response.ok) throw new Error(`Unable to load supervisor names (${response.status})`)
-                return normalizeRows(await response.json())
+                const spvrData = await fetchProxiedReport('supervisor', { from: queryDate, to: getNextDate(queryDate) })
+                return normalizeRows(spvrData)
               })()
             : Promise.resolve([])
         ])
@@ -2351,12 +2334,8 @@ function App() {
       } else {
         const sourceApiUrl = tellerApiUrl
         if (sourceApiUrl) {
-          const requestUrl = new URL(sourceApiUrl)
-          requestUrl.searchParams.set('from', queryDate)
-          requestUrl.searchParams.set('to', getNextDate(queryDate))
-          const response = await fetch(requestUrl, { headers })
-          if (!response.ok) throw new Error(`Unable to load report (${response.status})`)
-          reportRows = normalizeRows(await response.json())
+          const tellerData = await fetchProxiedReport('teller', { from: queryDate, to: getNextDate(queryDate) })
+          reportRows = normalizeRows(tellerData)
         }
         setSupervisorRows([])
       }
@@ -3025,7 +3004,7 @@ function App() {
                     simulatedFromAdmin: !isTargetAdmin,
                   }
                   setCurrentUser(updatedUser)
-                  try { sessionStorage.setItem('luckybet_user', JSON.stringify(updatedUser)) } catch {}
+                  updateCloudSession(updatedUser.token, updatedUser).catch(() => {})
                 }}
                 branchName={branchName}
                 initialTab={activeView === 'activity' ? 'logs' : 'users'}
