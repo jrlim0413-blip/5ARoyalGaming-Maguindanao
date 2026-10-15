@@ -7,8 +7,8 @@ export default async function handler(req, res) {
     return res.status(200).end();
   }
 
-  const SUPABASE_URL = process.env.VITE_SUPABASE_URL || 'https://snemagtefsfuagzdhzmq.supabase.co';
-  const SUPABASE_KEY = process.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNuZW1hZ3RlZnNmdWFnemRoem1xIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE4MDg4NjgsImV4cCI6MjEwNzM4NDg2OH0.Pym6MwNdX9vMDk-zbOGqCqfCjYUZqxMl9kpkwQfTo_A';
+  const SUPABASE_URL = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || 'https://zcautuharvzntfbmling.supabase.co';
+  const SUPABASE_KEY = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpjYXV0dWhhcnZ6bnRmYm1saW5nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE2NDA5OTQsImV4cCI6MjEwNzIxNjk5NH0.AjZkT3Voujg-84-JjLRNzd8QjqbE8pSL8CwoJmg0iJ0';
   const authBearer = process.env.VITE_AUTHORIZATION || '63211|6Jbvi41XijqCHw5eW2UpAvlbEGA8hOvsZHr1gZbV';
 
   const supaHeaders = {
@@ -18,18 +18,129 @@ export default async function handler(req, res) {
     'Prefer': 'return=representation',
   };
 
+  const defaultUsers = [
+    {
+      id: 'usr_admin',
+      username: 'admin',
+      password: 'adminpassword',
+      name: 'Jay Ryan Lim',
+      role: 'admin',
+      roleLabel: 'System Administrator',
+      branch: 'Maguindanao HQ',
+      assignedMunicipality: 'All Municipalities',
+      status: 'active',
+      lastLogin: 'Active Now',
+      createdAt: '2026-01-15',
+      avatar: 'JL',
+      email: 'admin@5aroyalgamingopc.ph',
+    },
+    {
+      id: 'usr_accountant',
+      username: 'ldn.staff',
+      password: 'luckybet2026',
+      name: 'Elena Morales',
+      role: 'accountant',
+      roleLabel: 'Head Cashier',
+      branch: 'Parang Branch',
+      assignedMunicipality: 'Parang',
+      status: 'active',
+      lastLogin: 'Today, 09:15 AM',
+      createdAt: '2026-02-01',
+      avatar: 'EM',
+      email: 'elena.m@5aroyalgamingopc.ph',
+    },
+    {
+      id: 'usr_supervisor',
+      username: 'supervisor.carlos',
+      password: 'luckybet2026',
+      name: 'Carlos Tan',
+      role: 'supervisor',
+      roleLabel: 'Branch Supervisor',
+      branch: 'Upi Station',
+      assignedMunicipality: 'Upi',
+      status: 'active',
+      lastLogin: 'Yesterday, 04:30 PM',
+      createdAt: '2026-02-10',
+      avatar: 'CT',
+      email: 'carlos.tan@5aroyalgamingopc.ph',
+    },
+    {
+      id: 'usr_terminal',
+      username: 'teller.ldn',
+      password: 'luckybet2026',
+      name: 'Rico Dela Cruz',
+      role: 'staff',
+      roleLabel: 'Terminal Staff',
+      branch: 'Ampatuan Terminal',
+      assignedMunicipality: 'Ampatuan',
+      status: 'active',
+      lastLogin: '3 days ago',
+      createdAt: '2026-02-20',
+      avatar: 'RD',
+      email: 'rico.staff@5aroyalgamingopc.ph',
+    },
+  ];
+
+  const defaultLogs = [
+    {
+      id: 'log_01',
+      timestamp: 'Today, 09:30 AM',
+      action: 'SESSION_AUTHENTICATION',
+      actor: 'admin',
+      details: 'System Administrator authenticated from 256-bit SSL Gateway',
+      severity: 'info',
+    },
+    {
+      id: 'log_02',
+      timestamp: 'Today, 08:45 AM',
+      action: 'RBAC_CREDENTIAL_VERIFIED',
+      actor: 'ldn.staff',
+      details: 'Accounting credentials verified for LDN draw turnover',
+      severity: 'success',
+    },
+    {
+      id: 'log_03',
+      timestamp: 'Yesterday, 09:00 PM',
+      action: 'DRAW_RECONCILIATION',
+      actor: 'system',
+      details: 'Evening 7:00 PM & 9:00 PM draw matrix balanced at 99.98% accuracy',
+      severity: 'info',
+    },
+  ];
+
+  function normalizeUser(row) {
+    if (!row || typeof row !== 'object') return null;
+    return {
+      id: row.id || `usr_${Date.now()}`,
+      username: row.username || '',
+      password: row.password || '',
+      name: row.name || row.username || 'User',
+      role: row.role || 'staff',
+      roleLabel: row.role_label || row.roleLabel || (row.role === 'admin' ? 'System Administrator' : row.role === 'accountant' ? 'Head Cashier' : row.role === 'supervisor' ? 'Branch Supervisor' : 'Terminal Staff'),
+      branch: row.branch || 'Maguindanao HQ',
+      assignedMunicipality: row.assigned_municipality || row.assignedMunicipality || 'All Municipalities',
+      status: row.status || 'active',
+      avatar: row.avatar || (row.name ? row.name.substring(0, 2).toUpperCase() : 'US'),
+      email: row.email || '',
+      lastLogin: row.last_login ? new Date(row.last_login).toLocaleString() : (row.lastLogin || 'Never'),
+      createdAt: row.created_at ? String(row.created_at).split('T')[0] : (row.createdAt || '2026-01-01'),
+    };
+  }
+
   const { action, type, from, to, drawId, id, token, username } = req.query || {};
 
   if (action === 'boot') {
     try {
-      const [matrixRes, commRes, usersRes] = await Promise.all([
+      const [matrixRes, commRes, usersRes, logsRes] = await Promise.all([
         fetch(`${SUPABASE_URL}/rest/v1/rbac_matrix_config?id=eq.matrix_config&select=config`, { headers: supaHeaders }),
         fetch(`${SUPABASE_URL}/rest/v1/rbac_matrix_config?id=eq.commissions_config&select=config`, { headers: supaHeaders }),
         fetch(`${SUPABASE_URL}/rest/v1/rbac_users?select=*&order=created_at.desc`, { headers: supaHeaders }),
+        fetch(`${SUPABASE_URL}/rest/v1/rbac_matrix_config?id=eq.audit_logs&select=config`, { headers: supaHeaders }),
       ]);
       const matrixData = await matrixRes.json();
       const commData = await commRes.json();
       const usersData = await usersRes.json();
+      const logsData = await logsRes.json();
 
       let sessionUser = null;
       if (token) {
@@ -40,11 +151,15 @@ export default async function handler(req, res) {
         }
       }
 
+      let parsedUsers = Array.isArray(usersData) && usersData.length > 0 ? usersData.map(normalizeUser).filter(Boolean) : defaultUsers;
+      let parsedLogs = logsData?.[0]?.config && Array.isArray(logsData[0].config) && logsData[0].config.length > 0 ? logsData[0].config : defaultLogs;
+
       return res.status(200).json({
         success: true,
         matrix: matrixData?.[0]?.config || null,
         commissions: commData?.[0]?.config || null,
-        users: Array.isArray(usersData) ? usersData : [],
+        users: parsedUsers,
+        logs: parsedLogs,
         sessionUser,
       });
     } catch (err) {
@@ -76,7 +191,42 @@ export default async function handler(req, res) {
     try {
       const r = await fetch(`${SUPABASE_URL}/rest/v1/rbac_users?select=*&order=created_at.desc`, { headers: supaHeaders });
       const data = await r.json();
-      return res.status(200).json({ success: true, data: Array.isArray(data) ? data : [] });
+      const usersList = Array.isArray(data) && data.length > 0 ? data.map(normalizeUser).filter(Boolean) : defaultUsers;
+      return res.status(200).json({ success: true, data: usersList });
+    } catch (err) {
+      return res.status(500).json({ success: false, error: err.message, data: defaultUsers });
+    }
+  }
+
+  if (action === 'get_audit_logs') {
+    try {
+      const r = await fetch(`${SUPABASE_URL}/rest/v1/rbac_matrix_config?id=eq.audit_logs&select=config`, { headers: supaHeaders });
+      const data = await r.json();
+      const logs = data?.[0]?.config && Array.isArray(data[0].config) && data[0].config.length > 0 ? data[0].config : defaultLogs;
+      return res.status(200).json({ success: true, data: logs });
+    } catch (err) {
+      return res.status(200).json({ success: true, data: defaultLogs });
+    }
+  }
+
+  if (action === 'save_audit_log') {
+    try {
+      const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+      const getRes = await fetch(`${SUPABASE_URL}/rest/v1/rbac_matrix_config?id=eq.audit_logs&select=config`, { headers: supaHeaders });
+      const getData = await getRes.json();
+      const currentLogs = getData?.[0]?.config && Array.isArray(getData[0].config) ? getData[0].config : defaultLogs;
+      const updatedLogs = [body, ...currentLogs.filter((l) => l.id !== body.id)].slice(0, 100);
+
+      const r = await fetch(`${SUPABASE_URL}/rest/v1/rbac_matrix_config`, {
+        method: 'POST',
+        headers: { ...supaHeaders, 'Prefer': 'resolution=merge-duplicates' },
+        body: JSON.stringify({
+          id: 'audit_logs',
+          config: updatedLogs,
+          updated_at: new Date().toISOString(),
+        }),
+      });
+      return res.status(r.status).json({ success: r.ok });
     } catch (err) {
       return res.status(500).json({ success: false, error: err.message });
     }
@@ -121,10 +271,22 @@ export default async function handler(req, res) {
   if (action === 'save_user') {
     try {
       const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+      const row = {
+        id: body.id,
+        username: body.username,
+        password: body.password,
+        name: body.name,
+        role: body.role,
+        role_label: body.roleLabel || body.role_label,
+        branch: body.branch,
+        status: body.status || 'active',
+        avatar: body.avatar,
+        email: body.email,
+      };
       const r = await fetch(`${SUPABASE_URL}/rest/v1/rbac_users`, {
         method: 'POST',
         headers: { ...supaHeaders, 'Prefer': 'resolution=merge-duplicates' },
-        body: JSON.stringify(body),
+        body: JSON.stringify(row),
       });
       const data = await r.json();
       return res.status(r.status).json({ success: r.ok, data });

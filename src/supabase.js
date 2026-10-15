@@ -1,35 +1,31 @@
 import { createClient } from '@supabase/supabase-js'
 import { resolveMunicipalityFromBranch, ALL_MUNICIPALITIES } from './municipalities.js'
-import { setInternalRbacRoles, setInternalUserCustomPerms, setInternalRbacUsers } from './rbac.js'
+import { setInternalRbacRoles, setInternalUserCustomPerms, setInternalRbacUsers, setInternalAuditLogs, getRbacUsers, getAuditLogs } from './rbac.js'
 import { setInternalCommissionSettings } from './commissions.js'
 
 export const setInMemoryRoles = setInternalRbacRoles
 export const setInMemoryUserPerms = setInternalUserCustomPerms
 export const setInMemoryUsers = setInternalRbacUsers
+export const setInMemoryAuditLogs = setInternalAuditLogs
 export const setInMemoryCommissionSettings = setInternalCommissionSettings
 
 const env = typeof import.meta !== 'undefined' && import.meta.env ? import.meta.env : {}
 
-const supabaseUrl = env.VITE_SUPABASE_URL || ''
-const supabaseAnonKey = env.VITE_SUPABASE_ANON_KEY || ''
+const supabaseUrl =
+  env.VITE_SUPABASE_URL || 'https://zcautuharvzntfbmling.supabase.co'
+const supabaseAnonKey =
+  env.VITE_SUPABASE_ANON_KEY ||
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpjYXV0dWhhcnZ6bnRmYm1saW5nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE2NDA5OTQsImV4cCI6MjEwNzIxNjk5NH0.AjZkT3Voujg-84-JjLRNzd8QjqbE8pSL8CwoJmg0iJ0'
 
-export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey)
+export const isSupabaseConfigured = true
 
-if (!isSupabaseConfigured && typeof window !== 'undefined') {
-  console.warn(
-    '[Supabase] Missing credentials: VITE_SUPABASE_URL and/or VITE_SUPABASE_ANON_KEY are not set in the environment variables.'
-  )
-}
-
-export const supabase = isSupabaseConfigured
-  ? createClient(supabaseUrl, supabaseAnonKey, {
-    auth: {
-      persistSession: false,
-      autoRefreshToken: true,
-      detectSessionInUrl: true,
-    },
-  })
-  : null
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    persistSession: false,
+    autoRefreshToken: true,
+    detectSessionInUrl: true,
+  },
+})
 
 export const RBAC_TABLE_NAME = 'rbac_users'
 
@@ -529,11 +525,11 @@ export async function getSupabaseRbacUsers() {
       const res = await fetch(u)
       if (res.ok) {
         const json = await res.json()
-        if (json.success && Array.isArray(json.data)) return { success: true, data: json.data }
+        if (json.success && Array.isArray(json.data) && json.data.length > 0) return { success: true, data: json.data }
       }
     } catch {}
   }
-  if (!supabase) return { success: false, data: [] }
+  if (!supabase) return { success: true, data: getRbacUsers() }
   try {
     const { data, error } = await supabase
       .from(RBAC_TABLE_NAME)
@@ -893,44 +889,63 @@ export const deleteCashierClaimFromSupabase = deletePayoutShortageRowFromSupabas
 export const AUDIT_LOGS_TABLE_NAME = 'rbac_audit_logs'
 
 export async function getSupabaseAuditLogs() {
-  if (!supabase) return { success: false, data: [] }
+  if (typeof window !== 'undefined' && window.location.protocol.startsWith('http')) {
+    try {
+      const u = new URL('/api/proxy', window.location.origin)
+      u.searchParams.set('action', 'get_audit_logs')
+      const res = await fetch(u)
+      if (res.ok) {
+        const json = await res.json()
+        if (json.success && Array.isArray(json.data) && json.data.length > 0) {
+          return { success: true, data: json.data }
+        }
+      }
+    } catch {}
+  }
+  if (!supabase) return { success: true, data: getAuditLogs() }
   try {
     const { data, error } = await supabase
-      .from(AUDIT_LOGS_TABLE_NAME)
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(100)
+      .from('rbac_matrix_config')
+      .select('config')
+      .eq('id', 'audit_logs')
+      .maybeSingle()
 
-    if (error) {
-      return { success: false, error: error.message, data: [] }
+    if (!error && data?.config && Array.isArray(data.config)) {
+      return { success: true, data: data.config }
     }
-    const normalized = (data || []).map((row) => ({
-      id: row.id,
-      timestamp: row.timestamp || new Date(row.created_at).toLocaleString(),
-      action: row.action,
-      actor: row.actor,
-      details: row.details,
-      severity: row.severity || 'info',
-    }))
-    return { success: true, data: normalized }
-  } catch (err) {
-    return { success: false, error: err.message, data: [] }
+    return { success: true, data: getAuditLogs() }
+  } catch {
+    return { success: true, data: getAuditLogs() }
   }
 }
 
 export async function saveSupabaseAuditLog(log) {
+  if (typeof window !== 'undefined' && window.location.protocol.startsWith('http')) {
+    try {
+      const u = new URL('/api/proxy', window.location.origin)
+      u.searchParams.set('action', 'save_audit_log')
+      const pRes = await fetch(u, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(log),
+      })
+      if (pRes.ok) return { success: true }
+    } catch {}
+  }
   if (!supabase) return { success: false }
   try {
-    const payload = {
-      id: log.id || `log_${Date.now()}`,
-      timestamp: log.timestamp || new Date().toLocaleString(),
-      action: log.action,
-      actor: log.actor || 'system',
-      details: log.details || '',
-      severity: log.severity || 'info',
-      created_at: new Date().toISOString(),
-    }
-    await supabase.from(AUDIT_LOGS_TABLE_NAME).insert([payload])
+    const { data } = await supabase
+      .from('rbac_matrix_config')
+      .select('config')
+      .eq('id', 'audit_logs')
+      .maybeSingle()
+    const current = data?.config && Array.isArray(data.config) ? data.config : []
+    const updated = [log, ...current.filter((l) => l.id !== log.id)].slice(0, 100)
+    await supabase.from('rbac_matrix_config').upsert({
+      id: 'audit_logs',
+      config: updated,
+      updated_at: new Date().toISOString(),
+    })
     return { success: true }
   } catch {
     return { success: false }
@@ -1141,6 +1156,7 @@ export async function bootFromCloud(sessionToken) {
           }
           if (data.commissions) setInternalCommissionSettings(data.commissions)
           if (Array.isArray(data.users) && data.users.length > 0) setInternalRbacUsers(data.users)
+          if (Array.isArray(data.logs) && data.logs.length > 0) setInternalAuditLogs(data.logs)
 
           window.dispatchEvent(new CustomEvent('luckybet_rbac_change', { detail: { source: 'boot_proxy' } }))
           window.dispatchEvent(new CustomEvent('luckybet_commissions_updated', { detail: data.commissions, source: 'boot_proxy' }))

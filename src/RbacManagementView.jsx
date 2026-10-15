@@ -24,6 +24,7 @@ import {
   areFeatureParentTabsDisabled,
   getAffectedFeaturesWhenTabDisabled,
   setInternalAuditLogs,
+  DEFAULT_AUDIT_LOGS,
 } from './rbac'
 import { MUNICIPALITIES, ALL_MUNICIPALITIES } from './municipalities'
 import {
@@ -341,8 +342,9 @@ export default function RbacManagementView({ currentUser, onSimulateUser, branch
           const validUsers = res.data.filter(
             (u) => !deletedList.includes(u.username?.toLowerCase())
           )
-          setUsers(validUsers)
-          saveRbacUsers(validUsers)
+          const finalUsers = validUsers.length > 0 ? validUsers : getRbacUsers()
+          setUsers(finalUsers)
+          saveRbacUsers(finalUsers)
           setSupabaseSyncStatus('connected')
 
           const lingering = res.data.filter((u) =>
@@ -353,13 +355,9 @@ export default function RbacManagementView({ currentUser, onSimulateUser, branch
           })
         } else if (res.tableMissing) {
           setSupabaseSyncStatus('table_missing')
-        } else if (res.success && res.data.length === 0) {
-          setSupabaseSyncStatus('connected')
-          const activeDefaults = users.filter(
-            (u) => !deletedList.includes(u.username?.toLowerCase())
-          )
-          activeDefaults.forEach((u) => saveRbacUserToSupabase(u).catch(() => {}))
+          setUsers(getRbacUsers())
         } else {
+          setUsers(getRbacUsers())
           setSupabaseSyncStatus('connected')
         }
 
@@ -368,11 +366,20 @@ export default function RbacManagementView({ currentUser, onSimulateUser, branch
             if (auditRes.success && Array.isArray(auditRes.data) && auditRes.data.length > 0) {
               setAuditLogs(auditRes.data)
               setInternalAuditLogs(auditRes.data)
+            } else {
+              const current = getAuditLogs()
+              setAuditLogs(current && current.length > 0 ? current : DEFAULT_AUDIT_LOGS)
             }
           })
-          .catch(() => {})
+          .catch(() => {
+            const current = getAuditLogs()
+            setAuditLogs(current && current.length > 0 ? current : DEFAULT_AUDIT_LOGS)
+          })
       })
       .catch(() => {
+        setUsers(getRbacUsers())
+        const current = getAuditLogs()
+        setAuditLogs(current && current.length > 0 ? current : DEFAULT_AUDIT_LOGS)
         setSupabaseSyncStatus('error')
       })
 
@@ -426,10 +433,15 @@ export default function RbacManagementView({ currentUser, onSimulateUser, branch
 
   const filteredUsers = useMemo(() => {
     return users.filter((u) => {
+      const uName = String(u.name || '')
+      const uUsername = String(u.username || '')
+      const uBranch = String(u.branch || '')
+      const query = searchQuery.toLowerCase()
+
       const matchesSearch =
-        u.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        u.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (u.branch && u.branch.toLowerCase().includes(searchQuery.toLowerCase()))
+        uName.toLowerCase().includes(query) ||
+        uUsername.toLowerCase().includes(query) ||
+        uBranch.toLowerCase().includes(query)
 
       let matchesFilter = true
       if (filterRole === 'active_only') {
@@ -1034,8 +1046,8 @@ export default function RbacManagementView({ currentUser, onSimulateUser, branch
                   }}
                   title={`Switch active test session to @${u.username} (${u.role}) - ${uPerms.length}/6 permissions enabled`}
                 >
-                  <span className="sim-btn-avatar">{u.avatar || u.name.substring(0, 2).toUpperCase()}</span>
-                  <span className="sim-btn-name">{u.name.split(' ')[0]}</span>
+                  <span className="sim-btn-avatar">{u.avatar || (u.name ? u.name.substring(0, 2).toUpperCase() : 'US')}</span>
+                  <span className="sim-btn-name">{(u.name || u.username || 'User').split(' ')[0]}</span>
                   <span className="sim-btn-role">({u.role})</span>
                 </button>
               )
@@ -1137,7 +1149,7 @@ export default function RbacManagementView({ currentUser, onSimulateUser, branch
                         borderColor: roleDef.borderColor,
                       }}
                     >
-                      {user.avatar || user.name.substring(0, 2).toUpperCase()}
+                      {user.avatar || (user.name ? user.name.substring(0, 2).toUpperCase() : 'US')}
                     </div>
 
                     <div className="rbac-user-header-meta">
@@ -1386,7 +1398,7 @@ export default function RbacManagementView({ currentUser, onSimulateUser, branch
                             <span className="role-accounts-count">{assignedUsers.length} accounts:</span>
                             {assignedUsers.map((u) => (
                               <span key={u.id} className="role-user-tag" title={`@${u.username}`}>
-                                {u.name.split(' ')[0]}
+                                {(u.name || u.username || 'User').split(' ')[0]}
                               </span>
                             ))}
                             {assignedUsers.length === 0 && <span className="no-accounts-tag">No accounts</span>}
@@ -1743,18 +1755,25 @@ export default function RbacManagementView({ currentUser, onSimulateUser, branch
           </div>
 
           <div className="rbac-logs-list">
-            {auditLogs.map((log) => (
-              <div key={log.id} className={`rbac-log-card severity-${log.severity || 'info'}`}>
-                <div className="rbac-log-timestamp">
-                  <span className="log-time">{log.timestamp}</span>
-                  <span className="log-actor">@{log.actor}</span>
-                </div>
-                <div className="rbac-log-body">
-                  <span className="rbac-log-action-tag">{log.action}</span>
-                  <p className="rbac-log-details">{log.details}</p>
-                </div>
+            {auditLogs.length === 0 ? (
+              <div className="rbac-empty-state">
+                <SvgIcon name="activity" size={32} />
+                <p>No activity logs recorded yet.</p>
               </div>
-            ))}
+            ) : (
+              auditLogs.map((log) => (
+                <div key={log.id} className={`rbac-log-card severity-${log.severity || 'info'}`}>
+                  <div className="rbac-log-timestamp">
+                    <span className="log-time">{log.timestamp}</span>
+                    <span className="log-actor">@{log.actor}</span>
+                  </div>
+                  <div className="rbac-log-body">
+                    <span className="rbac-log-action-tag">{log.action}</span>
+                    <p className="rbac-log-details">{log.details}</p>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
       )}
